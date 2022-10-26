@@ -1,0 +1,9 @@
+Title = "Station details for weather compilation"
+Variables = "Station Number", "Station", "Latitude", "Longitude", "Altitude (m)", "Distance (km)"
+Zone T = " ", I=6, J=1, K=1, F= POINT
+014015 Darwin_Airport -12.4239 130.8925 30.4 0
+015135 Tennant_Creek_Airport -19.64 134.18 376 989
+015590 Alice_Springs_Airport -23.7951 133.8890 546 1497
+16090 Coober_Pedy_Airport -29.03 134.72 225  2716
+016001 Woomera -31.1558 136.8054 166.6 2562
+023034 Adelaide_Airport -34.9524 138.5196  2 3021

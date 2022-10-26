@@ -1,0 +1,7 @@
+Station Number, Station, Latitude, Longitude, Station Height(m), Distance along route(km)
+014015, Darwin Airport, -12.4239, 130.8925, 30.4, 0
+015135, Tennant Creek Airport, -19.64, 134.18, 376, 989
+015590, Alice Springs Airport, -23.7951, 133.8890, 546, 1497
+16090, Coober Pedy Airport, -29.03, 134.72, 225,  2716
+023034, Adelaide Airport, -34.9524, 138.5196,  2, 3021
+016001, Woomera, -31.1558, 136.8054, 166.6, 2562
