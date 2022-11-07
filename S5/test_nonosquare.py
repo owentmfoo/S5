@@ -1,4 +1,4 @@
-import S5.why as why
+from S5.nonosquare import why
 import pytest
 
 @pytest.mark.parametrize("i",[i for i in range(30)])

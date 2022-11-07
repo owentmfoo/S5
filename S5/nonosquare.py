@@ -1,18 +1,25 @@
+"""This is the no no square, no no don't read on there.
+READ ON AT YOUR OWN RISK..."""
+
 import random
 from random import randint, choice
 
-import pytest
-
 
 def why():
-    THEANSWER = Why()
+    THEANSWER = _Why()
     THEANSWER.disp()
 
 
-class Why:
+class _Why:
+    """internal class to generate the answer to life, the universe and everything, and much much more than that."""
+
+    # the authors of S5
     Authors = ['Owen']
-    Names = ['Ellie', 'Joe', 'Morgan', 'James', 'Isaac', 'David', 'Owen the Kiwi', 'Tommy', 'Brain', 'Flanders', 'Nick',
-             'Luke', 'Ella', 'Anith', 'Ved', 'Ioan', 'Jack', 'Dylan', 'Connor', 'Tommy', 'Ben']
+
+    # for people who "made the cut"
+    Names = ['Owen the Kiwi', 'David', 'James', 'Roy', 'Isaac', 'Liam', 'Ellie', 'Joe', 'Tom', 'Morgan', 'Jack', 'Adam',
+    'Alex', 'Emily', 'Frances', 'Andrew', 'Hugh', 'Rob', 'Rachel', 'Burce the corcodile',
+    'Luke', 'Anith', 'Brain', 'Flanders', 'Nick',  'Ella',  'Ved', 'Ioan', 'Dylan', 'Connor', 'Ben', 'Tommy', 'Zeynep']
 
     def disp(self):
         n = random.randint(0, 100)
