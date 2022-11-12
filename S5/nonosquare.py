@@ -6,6 +6,7 @@ from random import randint, choice
 
 
 def why():
+    """The answer to life, the universe and everything, and much much more than that."""
     THEANSWER = _Why()
     THEANSWER.disp()
 
@@ -18,8 +19,9 @@ class _Why:
 
     # for people who "made the cut"
     Names = ['Owen the Kiwi', 'David', 'James', 'Roy', 'Isaac', 'Liam', 'Ellie', 'Joe', 'Tom', 'Morgan', 'Jack', 'Adam',
-    'Alex', 'Emily', 'Frances', 'Andrew', 'Hugh', 'Rob', 'Rachel', 'Burce the corcodile',
-    'Luke', 'Anith', 'Brain', 'Flanders', 'Nick',  'Ella',  'Ved', 'Ioan', 'Dylan', 'Connor', 'Ben', 'Tommy', 'Zeynep']
+    'Alex', 'Emily', 'Frances', 'Andrew', 'Hugh', 'Rob', 'Rachel', 'Burce the Corcodile',
+    'Luke', 'Anith', 'Brain', 'Flanders', 'Nick',  'Ella',  'Ved', 'Ioan', 'Dylan', 'Connor', 'Ben', 'Tommy', 'Zeynep',
+    'Morgan the Mollusc', 'Cephy the cephalopod',]
 
     def disp(self):
         n = random.randint(0, 100)
@@ -40,8 +42,11 @@ class _Why:
                    'don''t ask!',
                    'the customer is always right.',
                    ]
-        if random.randint(0, 100) == 42:
+        switch = random.randint(0, 100)
+        if switch == 5:
             return f'in the beginning, God created the heavens and the earth, and {", and ".join(self.Authors)} created S5'
+        elif switch == 42:
+            return '42'
         else:
             return random.choice(sc_list)
 
@@ -209,7 +214,6 @@ class _Why:
             'good',
             "itsy bitsy tiny winey light grey",
             "bulletproof",
-            "It's a bit like F1.",
             "hard",
             "flexible"
         ]
@@ -229,6 +233,7 @@ class _Why:
             "Run my babies, run!",
             "Pulleys are bulletproof.",
             "This is no fun at all!",
+            "It's a bit like F1.",
         ]
         return choice(quotes)
 

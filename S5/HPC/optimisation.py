@@ -17,7 +17,11 @@ def calc_strat_new(driver, c, v_bar, x, clip = None):  # TODO: WIP
 
 def set_mean(vel, v_bar, x, n, clip = None):
     '''adjust the mean velocity recursively
-    :param vel:
+    :param vel: array of velocity
+    :param v_bar: target mean velocity
+    :param x: distnance correcponding to the velocity points
+    :param n: precision in decimal points
+    :param clip: clipping to reduce spikes, None, "kph", or "ms"
     '''
     velout='spam'
     vel = np.copy(v_bar + vel - (x.max() - x.min()) / np.trapz(1 / vel, x))
@@ -27,15 +31,16 @@ def set_mean(vel, v_bar, x, n, clip = None):
         velout = np.clip(vel, 10, 130)
     elif clip == "ms":
         velout = np.copy(np.clip(vel,10/3.6,130/3.6))
-    elif isinstance(clip,dict):
-        if "road" in clip:
-            roadfile = clip["road"]
-            roadTP = TP.Tecplot(roadfile)
-            roadTP.data.set_index("Distance (km)",inplace=True)
-            velDF = None
-            #TODO: incomplete
+    # elif isinstance(clip,dict): # this was in alpha but not used
+    #     if "road" in clip:
+    #         roadfile = clip["road"]
+    #         roadTP = TP.Tecplot(roadfile)
+    #         roadTP.data.set_index("Distance (km)",inplace=True)
+    #         velDF = None
+    #
     else:
         velout = vel
+
     if np.round((x.max() - x.min()) / np.trapz(1 / velout, x), round(n)) == np.round(v_bar, round(n)):
         return velout.copy()
     else:

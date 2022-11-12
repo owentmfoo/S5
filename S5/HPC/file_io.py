@@ -1,15 +1,14 @@
-if __name__ == '__main__':
-    import sys
-    sys.path.append('E:\solar_car_race_strategy\S5')
-from S5.Tecplot import TecplotData, TPHeaderZone
+from S5.Tecplot import TecplotData, TPHeaderZone, DSWinput
 import pandas as pd
 import numpy as np
 from S5.HPC.optimisation import set_mean
+from typing import Union
+from collections import namedtuple
 
-def write_vel(tvel, outfile=None):
+def write_vel(tvel: Union[pd.DataFrame,float,int], outfile=None):
     '''
     create Target Velocity files with constant velocity profile.
-    :param tvel: target velocity
+    :param tvel: target velocity, or dataframe of target velocity
     :param outfile: filename
     '''
     if outfile is None:
@@ -21,7 +20,7 @@ def write_vel(tvel, outfile=None):
         assert "Distance (km)" in tvel.columns, "column  \"Distance (km)\" missing from dataframe at S5.HPC.file_io.write_vel"
         assert "TargetVel (km/h)" in tvel.columns, "column  \"TargetVel (km/h)\" missing from dataframe at S5.HPC.file_io.write_vel"
         vel_file.data = tvel[["Distance (km)", "TargetVel (km/h)"]]
-        vel_file.zone.ni = tvel.shape[0]
+        vel_file.update_zone_1d()
     else:
         tvel = float(tvel)
         vel_file.data = pd.DataFrame([[0, tvel], [3030, tvel]])
@@ -34,9 +33,11 @@ def write_vel(tvel, outfile=None):
 
 
 def read_history(histfile=None):
-    """return driving_time,dist,soc,avg_vel"""
-    hist_tp = TecplotData()
-    hist_tp.readfile(histfile)
+    """read and return the summary statistics of the history file as a list
+    :param histfile
+    :return [driving_time, dist, soc, avg_vel, Vstd, SoCMax, SoCMin]
+    """
+    hist_tp = TecplotData(histfile)
     # finish time in duration
     # finish SoC
     # check if soc reach 0
@@ -54,6 +55,9 @@ def read_history(histfile=None):
     SoCMax = hist_tp.data.loc[:,'BatteryCharge(%)'].max()
     SoCMin = hist_tp.data.loc[:,'BatteryCharge(%)'].min()
     return driving_time, dist, soc, avg_vel, Vstd, SoCMax, SoCMin
+    # planned new feature: Named tuple implementation
+    # hist_sum = namedtuple('History Summary',['driving_time', 'dist', 'soc', 'avg_vel', 'Vstd', 'SoCMax', 'SoCMin'])
+    # return hist_sum(driving_time, dist, soc, avg_vel, Vstd, SoCMax, SoCMin)
 
 def adjust_v(file,v_bar):
     x = file.data['Distance (km)']
@@ -64,33 +68,24 @@ def adjust_v(file,v_bar):
 
 
 def win2lin(filepath: str)->None:
-    """ convert DSWSS input files from windown to linux compatiable (slashes from \ to /)
+    r""" convert DSW input files from windown to linux compatiable (slashes from \ to /)
     :param filepath:
     """
-    with open(filepath) as file:
-        lines = file.readlines()
-    for i,line in enumerate(lines):
-        lines[i] = line.replace("\\","/")
-    with open(filepath,"w") as file:
-        file.writelines(lines)
+    input_file = DSWinput(filepath)
+    input_file.format("lin")
+    input_file.write_input(filepath)
 
 def lin2win(filepath: str)->None:
-    """ convert DSWSS input files from linus to windows compatiable (slashes from / to \)
+    r""" convert DSW input files from linus to windows compatiable (slashes from / to \)
     :param filepath:
     """
-    with open(filepath,'r') as file:
-        lines = file.readlines()
-    for i,line in enumerate(lines):
-        lines[i] = line.replace("/","\\")
-    with open(filepath,"w") as file:
-        file.writelines(lines)
+    input_file = DSWinput(filepath)
+    input_file.format("win")
+    input_file.write_input(filepath)
 
 
 if __name__ == '__main__':
-    import sys
-    sys.path.append('E:\solar_car_race_strategy\S5')
-    # filename = "TargetVel.dat"
-    # tvel = 62
-    # write_vel(tvel, filename)
-    win2lin("SolarSim.in")
-    lin2win("SolarSim.in")
+    filename = "TargetVel.dat"
+    tvel = 62
+    write_vel(tvel, filename)
+

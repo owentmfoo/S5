@@ -6,6 +6,9 @@ import io
 
 
 class TecplotData:
+    """
+    Class to repersent a Tecplot File
+    """
     def __init__(self, filename=None):
         self.title = 'Title'
         self.pressure = 0
@@ -22,7 +25,7 @@ class TecplotData:
     def readfile(self, filename) -> None:
         """populate the class attributes from the file, data is available in self.data as pandas.dataframe
         :param filename: file name of .dat file or pathlib.Path object of equivalent
-        :return: None, data are stored as attributes in the class object.
+        :return None: None, data are stored as attributes in the class object.
 
         >> tvel.readfile("Velocity.dat")
         """
@@ -106,7 +109,7 @@ class TecplotData:
 
     def check_zone(self) -> bool:
         """checks the zone detail matches the dataframe
-        :return False if there is zone detail mismatch"""
+        :return bool: False if there is zone detail mismatch"""
         if (self.zone.ni * self.zone.nj * self.zone.nk != self.data.shape[0]):
             warnings.warn("Zone detail mismatch")
             return False
