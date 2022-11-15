@@ -84,7 +84,7 @@ def lin2win(filepath: str)->None:
     input_file.write_input(filepath)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     filename = "TargetVel.dat"
     tvel = 62
     write_vel(tvel, filename)

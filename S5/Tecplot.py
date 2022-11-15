@@ -256,6 +256,6 @@ class DSWinput:
                 lines[i] = line.replace(r"\\", r"/")
         self.lines = lines
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     df = SSHistory(r"E:\solar_car_race_strategy\SolarSim\1.Const-Vel\History_70.0.dat")
 

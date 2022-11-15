@@ -19,9 +19,10 @@ class _Why:
 
     # for people who "made the cut"
     Names = ['Owen the Kiwi', 'David', 'James', 'Roy', 'Isaac', 'Liam', 'Ellie', 'Joe', 'Tom', 'Morgan', 'Jack', 'Adam',
-    'Alex', 'Emily', 'Frances', 'Andrew', 'Hugh', 'Rob', 'Rachel', 'Burce the Corcodile',
-    'Luke', 'Anith', 'Brain', 'Flanders', 'Nick',  'Ella',  'Ved', 'Ioan', 'Dylan', 'Connor', 'Ben', 'Tommy', 'Zeynep',
-    'Morgan the Mollusc', 'Cephy the cephalopod',]
+             'Alex', 'Emily', 'Frances', 'Andrew', 'Hugh', 'Rob', 'Rachel', 'Burce the Corcodile',
+             'Luke', 'Anith', 'Brain', 'Flanders', 'Nick', 'Ella', 'Ved', 'Ioan', 'Dylan', 'Connor', 'Ben', 'Tommy',
+             'Zeynep',
+             'Morgan the Mollusc', 'Cephy the cephalopod', ]
 
     def disp(self):
         n = random.randint(0, 100)
@@ -67,6 +68,7 @@ class _Why:
             'butter up'
         ]
         return choice(pres_v_lst)
+
     def preposition(self):
         prepo_lst = [
             'of',
@@ -83,7 +85,7 @@ class _Why:
         return choice(prepo_ph_lst)
 
     def nounded_verb(self):
-        nv_lst = ['love', 'approval','suggest','question']
+        nv_lst = ['love', 'approval', 'suggest', 'question']
         return choice(nv_lst)
 
     def proper_noun(self):
@@ -238,6 +240,6 @@ class _Why:
         return choice(quotes)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     for i in range(100):
         why()
