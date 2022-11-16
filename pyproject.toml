@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "S5"
-version = "1.0.b2"
+version = "1.0.b4"
 authors = [{name = "Owen Foo", email = "owentmfoo@gmail.com"}]
 description = "SolarSim Strategy Support Software"
 readme = "README.md"
@@ -18,7 +18,7 @@ classifiers = [
 
 dependencies = [
     "pandas",
-    "matplotlib"
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
