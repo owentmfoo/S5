@@ -168,10 +168,10 @@ def test_history_add_timestamp(history_file,count):
     hist.data = hist.data.iloc[[1,-1],:]
     hist.update_zone_1d()
     now = datetime.now()
-    baseline = datetime(now.year,now.month,now.day,now.hour,now.minute,now.second)
+    baseline = datetime(now.year, now.month, random.randint(1, 23), now.hour, now.minute, now.second)
     correct_datetime = [baseline, baseline + timedelta(seconds=count)]
     hist.data['DDHHMMSS'] = [int(str((entry.day-baseline.day+1))+entry.strftime('%H%M%S')) for entry in correct_datetime]
-    hist.add_timestamp(startday=now.strftime('%Y%m%d'))
+    hist.add_timestamp(startday=baseline.strftime('%Y%m%d'))
     # print(correct_datetime)
     # print((hist.data["DateTime"]))
     # print(timedelta(seconds=count))
@@ -191,11 +191,11 @@ def test_weather_add_timestamp(weather_file,count):
     weather = TP.SSWeather(weather_file)
     weather.data = weather.data.iloc[[1,-1],:]
     now = datetime.now()
-    baseline = datetime(now.year,now.month,now.day,now.hour,now.minute)
+    baseline = datetime(now.year, now.month, random.randint(1, 23), now.hour, now.minute)
     correct_datetime = [baseline, baseline + timedelta(minutes=count)]
     weather.data['Day'] = [int(str((entry.day-baseline.day+1))) for entry in correct_datetime]
     weather.data['Time (HHMM)'] =  [int(str(entry.strftime('%H%M'))) for entry in correct_datetime]
-    weather.add_timestamp(startday=now.strftime('%Y%m%d'))
+    weather.add_timestamp(startday=baseline.strftime('%Y%m%d'))
     print(f'correct datetime: \t {correct_datetime}')
     print((weather.data["DateTime"]))
     print(timedelta(seconds=count))
