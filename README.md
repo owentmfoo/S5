@@ -2,7 +2,7 @@
 
 To install the package locally
 
-`python3 -m pip install S5-1.0.tar.gz`
+`python3 -m pip install .`
 
 ### Core package requirements
 <li>pandas
