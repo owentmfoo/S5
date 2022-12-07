@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/S5" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/S5/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/dist" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
-    <option name="requirementsPath" value="E:\S5\requirements.txt" />
+    <option name="requirementsPath" value="" />
     <option name="versionSpecifier" value="Greater or equal (&gt;=x.y.z)" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="GOOGLE" />
+    <option name="myDocStringFormat" value="Google" />
+  </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/S5" />
+        <option value="$MODULE_DIR$/S5/HPC" />
+      </list>
+    </option>
   </component>
 </module>

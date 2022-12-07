@@ -2,7 +2,7 @@
 READ ON AT YOUR OWN RISK..."""
 
 import random
-from random import randint, choice
+from random import choice
 
 
 def why():
@@ -89,7 +89,7 @@ class _Why:
         return choice(nv_lst)
 
     def proper_noun(self):
-        return (choice(self.Names + self.Authors))
+        return choice(self.Names + self.Authors)
 
     def subject(self):
         sbj_lst = [

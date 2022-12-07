@@ -2,7 +2,7 @@
 
 To install the package locally
 
-`python3 -m pip install .`
+> `python3 -m pip install .`
 
 ### Core package requirements
 <li>pandas
@@ -13,7 +13,6 @@ To install the package locally
 
 To install the required core package
 >`$ pip install --user -r requirements.txt`
-`
 ### Extra pacakge requiried for Weather.readgrib
 cfgrib, xarray and ecCodes are needed as well.
 ecCodes cannot be installed just by pip 

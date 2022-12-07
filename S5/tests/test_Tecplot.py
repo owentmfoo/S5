@@ -1,13 +1,13 @@
 import random
 import warnings
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from io import StringIO
 import S5.Tecplot as TP
 import pandas as pd
 import pytest
 import S5
 
-#TODO: add coverage form SSWeather
+
 
 def test_tecplotdata_constructor():
     TestTecplotData = TP.TecplotData()
@@ -18,6 +18,7 @@ def test_tecplotdata_constructor():
     assert isinstance(TestTecplotData.datum, list)
     assert isinstance(TestTecplotData.zone, TP.TPHeaderZone)
     assert isinstance(TestTecplotData.data, pd.DataFrame)
+
 
 def test_tecplotheaderzone_constructor():
     TestTPHeaderZone = TP.TPHeaderZone()
@@ -37,6 +38,7 @@ def test_bad_read_tecplot_file(history_tp):
     with pytest.raises(TypeError):
         hist = TP.TecplotData(history_tp)
 
+
 def test_read_write(velocity_file, tmp_path):
     tp1 = TP.TecplotData(velocity_file)
     tp1.write_tecplot(tmp_path / "test1.dat")
@@ -52,14 +54,15 @@ def test_read_write(velocity_file, tmp_path):
     assert org_lines == write1_lines
     assert org_lines == write2_lines
 
+
 def test_read_write_with_datum(velocity_file, tmp_path):
     tp1 = TP.TecplotData(velocity_file)
     tp1.pressure = 125000
     tp1.temperature = 298
     tp1.datum = ['datum']
-    tp1.write_tecplot(tmp_path / "test1.dat",Datum=True)
+    tp1.write_tecplot(tmp_path / "test1.dat", Datum=True)
     tp2 = TP.TecplotData(tmp_path / "test1.dat")
-    tp2.write_tecplot(tmp_path / "test2.dat",Datum=True)
+    tp2.write_tecplot(tmp_path / "test2.dat", Datum=True)
     with open(velocity_file) as original:
         org_lines = original.readlines()
     with open(tmp_path / "test1.dat") as write1:
@@ -69,10 +72,12 @@ def test_read_write_with_datum(velocity_file, tmp_path):
     pd.testing.assert_frame_equal(tp1.data, tp2.data)
     assert write1_lines == write2_lines
 
+
 def test_write_empty(tmp_path):
     tp = TP.TecplotData()
     with pytest.raises(AttributeError):
-        assert tp.write_tecplot(tmp_path/'out.dat') is False
+        assert tp.write_tecplot(tmp_path / 'out.dat') is False
+
 
 def test_read_bad_title(tmp_path):
     filepath = tmp_path / "badvel.dat"
@@ -85,6 +90,7 @@ Zone T = "", I = 2, J = 1, K = 1, F = POINT
     with pytest.raises(SyntaxError):
         fail = TP.TecplotData(filepath)
 
+
 def test_read_bad_var_title(tmp_path):
     filepath = tmp_path / "badvel.dat"
     with open(filepath, 'w') as file:
@@ -95,6 +101,7 @@ Zone T = "", I = 2, J = 1, K = 1, F = POINT
 3030  0 """)
     with pytest.raises(SyntaxError):
         fail = TP.TecplotData(filepath)
+
 
 def test_read_bad_zone_title(tmp_path):
     filepath = tmp_path / "badvel.dat"
@@ -117,6 +124,7 @@ Zoe T = "", I =
     with pytest.raises(SyntaxError):
         fail = TP.TecplotData(filepath)
         print(fail.zone)
+
 
 def test_hist_tp(history_tp):
     assert history_tp.zone.ni == 2
@@ -146,7 +154,8 @@ def test_print_headerzone(capsys):
     zone_str = 'Zone T = "", I = 3, J = 1, K = 1, F = POINT'
     tpheader = TP.TPHeaderZone(zone_str)
     print(tpheader)
-    assert capsys.readouterr().out == zone_str+'\n'
+    assert capsys.readouterr().out == zone_str + '\n'
+
 
 # TODO: improve this?
 def test_print_tpdata(history_file):
@@ -156,79 +165,87 @@ def test_print_tpdata(history_file):
 
 def test_history_read(history_file):
     hist = TP.SSHistory(history_file)
-    assert isinstance(hist,TP.SSHistory)
-    assert isinstance(hist.data,pd.DataFrame)
-    assert isinstance(hist.title,str)
-    assert isinstance(hist.zone,TP.TPHeaderZone)
+    assert isinstance(hist, TP.SSHistory)
+    assert isinstance(hist.data, pd.DataFrame)
+    assert isinstance(hist.title, str)
+    assert isinstance(hist.zone, TP.TPHeaderZone)
 
 
-@pytest.mark.parametrize('count',[random.randint(0,604800) for i in range(5)])
-def test_history_add_timestamp(history_file,count):
+@pytest.mark.parametrize('count', [random.randint(0, 604800) for i in range(5)])
+def test_history_add_timestamp(history_file, count):
     hist = TP.SSHistory(history_file)
-    hist.data = hist.data.iloc[[1,-1],:]
+    hist.data = hist.data.iloc[[1, -1], :]
     hist.update_zone_1d()
     now = datetime.now()
     baseline = datetime(now.year, now.month, random.randint(1, 23), now.hour, now.minute, now.second)
     correct_datetime = [baseline, baseline + timedelta(seconds=count)]
-    hist.data['DDHHMMSS'] = [int(str((entry.day-baseline.day+1))+entry.strftime('%H%M%S')) for entry in correct_datetime]
+    hist.data['DDHHMMSS'] = [int(str((entry.day - baseline.day + 1)) + entry.strftime('%H%M%S')) for entry in
+                             correct_datetime]
     hist.add_timestamp(startday=baseline.strftime('%Y%m%d'))
     # print(correct_datetime)
     # print((hist.data["DateTime"]))
     # print(timedelta(seconds=count))
-    pd.testing.assert_series_equal(hist.data['DateTime'],pd.Series(correct_datetime,name='DateTime'),
+    pd.testing.assert_series_equal(hist.data['DateTime'], pd.Series(correct_datetime, name='DateTime'),
                                    check_index=False)
 
 
 def test_weather_read(weather_file):
     weather = TP.SSWeather(weather_file)
-    assert isinstance(weather,TP.SSWeather)
-    assert isinstance(weather.data,pd.DataFrame)
-    assert isinstance(weather.title,str)
-    assert isinstance(weather.zone,TP.TPHeaderZone)
+    assert isinstance(weather, TP.SSWeather)
+    assert isinstance(weather.data, pd.DataFrame)
+    assert isinstance(weather.title, str)
+    assert isinstance(weather.zone, TP.TPHeaderZone)
 
-@pytest.mark.parametrize('count',[random.randint(0,10080) for i in range(5)])
-def test_weather_add_timestamp(weather_file,count):
+
+@pytest.mark.parametrize('count', [random.randint(0, 10080) for i in range(5)])
+def test_weather_add_timestamp(weather_file, count):
     weather = TP.SSWeather(weather_file)
-    weather.data = weather.data.iloc[[1,-1],:]
+    weather.data = weather.data.iloc[[1, -1], :]
     now = datetime.now()
     baseline = datetime(now.year, now.month, random.randint(1, 23), now.hour, now.minute)
     correct_datetime = [baseline, baseline + timedelta(minutes=count)]
-    weather.data['Day'] = [int(str((entry.day-baseline.day+1))) for entry in correct_datetime]
-    weather.data['Time (HHMM)'] =  [int(str(entry.strftime('%H%M'))) for entry in correct_datetime]
+    weather.data['Day'] = [int(str((entry.day - baseline.day + 1))) for entry in correct_datetime]
+    weather.data['Time (HHMM)'] = [int(str(entry.strftime('%H%M'))) for entry in correct_datetime]
     weather.add_timestamp(startday=baseline.strftime('%Y%m%d'))
     print(f'correct datetime: \t {correct_datetime}')
     print((weather.data["DateTime"]))
     print(timedelta(seconds=count))
-    pd.testing.assert_series_equal(weather.data['DateTime'],pd.Series(correct_datetime,name='DateTime'),
+    pd.testing.assert_series_equal(weather.data['DateTime'], pd.Series(correct_datetime, name='DateTime'),
                                    check_index=False)
+
 
 def test_read_DSWinput(solarsim_in):
     ssin = TP.DSWinput(str(solarsim_in))
-    assert isinstance(ssin,TP.DSWinput)
-    assert isinstance(ssin.filename,str)
-    assert isinstance(ssin.lines,list)
+    assert isinstance(ssin, TP.DSWinput)
+    assert isinstance(ssin.filename, str)
+    assert isinstance(ssin.lines, list)
     if len(ssin.lines) > 0:
-        assert isinstance(ssin.lines[0],str)
+        assert isinstance(ssin.lines[0], str)
+
 
 def test_construct_DWSinnput():
     ssin = TP.DSWinput()
-    assert isinstance(ssin,TP.DSWinput)
-    assert isinstance(ssin.lines,list)
-    assert isinstance(ssin.lines[0],str)
+    assert isinstance(ssin, TP.DSWinput)
+    assert isinstance(ssin.lines, list)
+    assert isinstance(ssin.lines[0], str)
     assert ssin.filename is None
+
 
 def test_DSWinput_get_value(solarsim_in):
     ssin = TP.DSWinput(solarsim_in)
-    assert ssin.get_value("Title").strip() == r'"SolarSim4.1, WSC, Aero202, CRR(Schwalbe)=0.013, 2xDriveTek MPPTs, LGChem-35s12p-20200412"'
+    assert ssin.get_value(
+        "Title").strip() == r'"SolarSim4.1, WSC, Aero202, CRR(Schwalbe)=0.013, 2xDriveTek MPPTs, LGChem-35s12p-20200412"'
     assert ssin.get_value('DriverOutOfCarTime (s)') == "15"
+
 
 def test_DSWinput_set_value(solarsim_in):
     ssin = TP.DSWinput(solarsim_in)
     test_str = "test string"
-    assert ssin.set_value("Title",test_str)
-    assert ssin.set_value("DriverOutOfCarTime (s)","30")
+    assert ssin.set_value("Title", test_str)
+    assert ssin.set_value("DriverOutOfCarTime (s)", "69")
     assert ssin.get_value("Title") == test_str
-    assert ssin.get_value("DriverOutOfCarTime (s)") == "30"
+    assert ssin.get_value("DriverOutOfCarTime (s)") == "69"
+
 
 def test_DSWinput_bad_value(solarsim_in):
     ssin = TP.DSWinput(solarsim_in)
@@ -236,9 +253,10 @@ def test_DSWinput_bad_value(solarsim_in):
     with pytest.raises(ValueError):
         ssin.get_value(bad_param)
     with pytest.raises(ValueError):
-        ssin.set_value(bad_param,bad_param)
+        ssin.set_value(bad_param, bad_param)
 
-def test_DSWinput_read_write(tmp_path,solarsim_in):
+
+def test_DSWinput_read_write(tmp_path, solarsim_in):
     ssin = TP.DSWinput(solarsim_in)
     test1_pth = tmp_path / "test1.in"
     test2_pth = tmp_path / "test1.in"
@@ -250,13 +268,15 @@ def test_DSWinput_read_write(tmp_path,solarsim_in):
     assert ssin.lines == test1.lines
 
 
-@pytest.mark.parametrize('original,converted',[('win','lin'),('lin','win'),('win','win'),('lin','lin')])
-def test_DSWinput_format(original,converted):
+@pytest.mark.parametrize('original,converted', [('win', 'lin'), ('lin', 'win'), ('win', 'win'), ('lin', 'lin')])
+def test_DSWinput_format(original, converted):
     ssin = TP.DSWinput()
-    winlines = [r'WeatherFile                	= "z:\technical\DUSC2023\SolarSim\2023ArraySolarSim\old_baselines\Baseline\Weather-2015October-20180528.dat"',
-r'RoadFile        		= "z:\technical\DUSC2023\SolarSim\2023ArraySolarSim\old_baselines\Baseline\RoadFile-LatLon-2021.dat"']
-    linlines = [r'WeatherFile                	= "z:/technical/DUSC2023/SolarSim/2023ArraySolarSim/old_baselines/Baseline/Weather-2015October-20180528.dat"',
-r'RoadFile        		= "z:/technical/DUSC2023/SolarSim/2023ArraySolarSim/old_baselines/Baseline/RoadFile-LatLon-2021.dat"']
+    winlines = [
+        r'WeatherFile                	= "z:\technical\DUSC2023\SolarSim\2023ArraySolarSim\old_baselines\Baseline\Weather-2015October-20180528.dat"',
+        r'RoadFile        		= "z:\technical\DUSC2023\SolarSim\2023ArraySolarSim\old_baselines\Baseline\RoadFile-LatLon-2021.dat"']
+    linlines = [
+        r'WeatherFile                	= "z:/technical/DUSC2023/SolarSim/2023ArraySolarSim/old_baselines/Baseline/Weather-2015October-20180528.dat"',
+        r'RoadFile        		= "z:/technical/DUSC2023/SolarSim/2023ArraySolarSim/old_baselines/Baseline/RoadFile-LatLon-2021.dat"']
     if original == 'win':
         ssin.lines = winlines
     elif original == 'lin':
