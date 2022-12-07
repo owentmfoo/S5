@@ -1,31 +1,30 @@
-import S5.Tecplot as TP
-import warnings
-import numpy as np
 import math
+import warnings
+
+import numpy as np
 
 
 def calc_strat_new(driver, c, v_bar, x, clip=None):
-    '''scale the target velocity to c with mean v_bar and profile driver'''
+    """scale the target velocity to c with mean v_bar and profile driver"""
     n = 8
     if c == 0:
         v_bar = round(v_bar, n)
         velout = driver * 0 + v_bar
         return velout
     r = extract_prime(driver, x, n)  # extract variation
-    # print(np.percentile(r,95),max(r))
     adj = r / np.percentile(r, 68) * c  # normalise the magnitude
     vel = v_bar + adj  # adjust the mean value
     return set_mean(vel, v_bar, x, n, clip)
 
 
 def set_mean(vel, v_bar, x, n, clip=None):
-    '''adjust the mean velocity recursively
+    """adjust the mean velocity
     :param vel: array of velocity
     :param v_bar: target mean velocity
     :param x: distnance correcponding to the velocity points
     :param n: precision in decimal points
     :param clip: clipping to reduce spikes, None, "kph", or "ms"
-    '''
+    """
     velout = 'spam'
     vel = np.copy(v_bar + vel - np.trapz(vel, x) / (x.max() - x.min()))
     if clip is None:
@@ -51,6 +50,7 @@ def set_mean(vel, v_bar, x, n, clip=None):
 
     if np.isclose(np.trapz(velout, x) / (x.max() - x.min()), v_bar):
         return velout.copy()
+    # Old implementation by recursion. Keep until current implementation tested with real data.
     # else:
     #     try:
     #         velout = set_mean(np.copy(vel), v_bar, x, min(n - 0.002, 4),clip) # python recursion limit is 1000
@@ -58,7 +58,7 @@ def set_mean(vel, v_bar, x, n, clip=None):
     #         warnings.warn(f'max recursion reached with v_bar = {v_bar}')
     #     return velout.copy()
     velout = _set_mean_clip_optifun(vel, v_bar, x, n, clip=clip)
-    current_delta = np.trapz(velout, x) / (x.max() - x.min()) - v_bar  # detla is positive if the actual is larger
+    current_delta = np.trapz(velout, x) / (x.max() - x.min()) - v_bar  # delta is positive if the actual is larger
     # than the target
     adjust = v_bar - current_delta  # if the actual is larger than target, take some off
     while not math.isclose(current_delta, 0, abs_tol=1e-12):
@@ -76,14 +76,13 @@ def set_mean(vel, v_bar, x, n, clip=None):
 
 
 def _set_mean_clip_optifun(vel, v_bar, x, n, clip=None):
-    '''adjust the mean velocity recursively
+    """adjust the mean velocity to v_bar
     :param vel: array of velocity
     :param v_bar: target mean velocity
     :param x: distnance correcponding to the velocity points
     :param n: precision in decimal points
     :param clip: clipping to reduce spikes, None, "kph", or "ms"
-    '''
-    velout = 'spam'
+    """
     vel = np.copy(v_bar + vel - np.trapz(vel, x) / (x.max() - x.min()))
     if clip is None:
         velout = vel
@@ -110,6 +109,7 @@ def extract_prime(vel, x, n):
 
 
 def calc_strat(driver, c, v_bar, x, clip=None):
+    """scale the target velocity to c with mean v_bar and profile driver"""
     return calc_strat_new(driver, c, v_bar, x, clip)
     # r = driver - np.trapz(driver,x)/(x.max()-x.min()) #extract variation
     # adj = r/np.max(r)*c #normalise the magnitude

@@ -1,4 +1,6 @@
 import pathlib
+from typing import Union
+
 import pandas as pd
 import re
 import warnings
@@ -7,8 +9,9 @@ import io
 
 class TecplotData:
     """
-    Class to repersent a Tecplot File
+    Class to represent a Tecplot File
     """
+
     def __init__(self, filename=None):
         self.title = 'Title'
         self.pressure = 0
@@ -27,16 +30,16 @@ class TecplotData:
         :param filename: file name of .dat file or pathlib.Path object of equivalent
         :return None: None, data are stored as attributes in the class object.
 
-        >> tvel.readfile("Velocity.dat")
+        >>> TecplotData.readfile("Velocity.dat")
         """
         '''
         This will act as the base class for specific filed (e.g. History, Weather, Motor)
         '''
-        if not (isinstance(filename,pathlib.Path) or isinstance(filename,str)):
+        if not (isinstance(filename, pathlib.Path) or isinstance(filename, str)):
             raise TypeError("filename should either be string or pathlib.Path")
-        if isinstance(filename,pathlib.Path):
+        if isinstance(filename, pathlib.Path):
             filename = str(filename)
-        self.filename =filename
+        self.filename = filename
         with open(filename) as f:
             # phrase title
             try:
@@ -50,7 +53,6 @@ class TecplotData:
             except AttributeError as err:
                 raise SyntaxError('Tecplot file ' + filename + ' missing variable titles\n')
             variable = variable.strip("\"").split("\", \"")
-
 
             # try phrase the two optional datum lines
             for x, line in enumerate(f):
@@ -76,16 +78,16 @@ class TecplotData:
                     raise SyntaxError('Tecplot file  ' + filename + ' missing zone data\n')
         self.data = pd.read_csv(filename, skiprows=x + 3, index_col=False, sep=r'\s+', names=variable)
 
-
     def write_tecplot(self, filename, Datum=False) -> None:
-        """write the tecploptdata to a .dat file
+        """write the TecplotData to a .dat file
+        :param Datum: If DSW datum lines are written, default false
         :param filename: including extension (.dat)
         does not return anything in python
 
-        >> tvel.write_tecplot("Velocity.dat")
+        >>> TecplotData.write_tecplot("Velocity.dat")
         """
 
-        if self.data is None or self.zone is None or self.data.size==0:
+        if self.data is None or self.zone is None or self.data.size == 0:
             raise AttributeError(f"No valid data found in export for {filename}")
 
         self.check_zone()  # raise warning if the zone details doesn't match the data.
@@ -98,18 +100,19 @@ class TecplotData:
                 f.write(f'#PAtm(Pa) TAtm(K)= {self.pressure} {self.temperature}\n')
                 f.write(f'#Datums= {" ".join(self.datum)}\n')
 
-
             f.write(f'{self.zone.to_string()}\n')  # need fix
             self.data.to_string(f, header=False, index=False, col_space=6)
             f.flush()
 
     def update_zone_1d(self):
-        """update the zone detail such that i= the size of the dataframe"""
+        """update the zone detail such that i = the size of the dataframe in self.data
+        >>> TecplotData.update_zone_1d()"""
         self.zone.ni = self.data.shape[0]
 
     def check_zone(self) -> bool:
         """checks the zone detail matches the dataframe
-        :return bool: False if there is zone detail mismatch"""
+        :return bool: False if there is zone detail mismatch
+        >>> TecplotData.check_zone()"""
         if (self.zone.ni * self.zone.nj * self.zone.nk != self.data.shape[0]):
             warnings.warn("Zone detail mismatch")
             return False
@@ -125,6 +128,7 @@ class TecplotData:
 
 # deal with 3d data?
 class SSWeather(TecplotData):
+    """Class that represents SolarSim Weather file"""
     def add_timestamp(self, startday='19990716', day='Day', time='Time (HHMM)'):
         """
         DSW SolarSim Weather file Specific Function
@@ -132,6 +136,8 @@ class SSWeather(TecplotData):
         :argument day: column name for the day column
         :argument time: column name for the time column
         :argument startday: first day of the race
+        >>> SSWeather.add_timestamp(startday='13102019')
+        >>> SSWeather.add_timestamp(startday='13102019', day = 'Day', time = 'Time (HHMM)')
         """
         startday = pd.to_datetime(startday)
         self.data['DateTime'] = pd.to_datetime(
@@ -141,13 +147,15 @@ class SSWeather(TecplotData):
 
 
 class SSHistory(TecplotData):
+    """Class that represents SolarSim History file"""
 
-    def add_timestamp(self, startday='20191013',datetime_col = 'DDHHMMSS'):
+    def add_timestamp(self, startday='20191013', datetime_col='DDHHMMSS'):
         """
         DSW SolarSim History file Specific Function
         create a timestamp column in the dataframe if the file have day and time column in the DSWSS format
         :argument startday: first day of the race
         :argument datetime_col: column name for the timestamp
+        >>> SSHistory.add_timestamp(startday='13102019')
         """
         self.data.loc[:, 'Day'] = self.data[datetime_col].astype(int).astype(str).str.pad(8, fillchar='0').str[
                                   0:2].astype(int)
@@ -177,7 +185,7 @@ class TPHeaderZone:
         try:
             zonematch = re.compile('ZoneT="(.*)"(,ZONETYPE=(.*))?,I=(.+),J=(.+),K=(.+),(F=(.+))?')
             mtch = zonematch.match(zonestr.replace(" ", ""))
-            self.zonetitle = str(re.search(r'"(.*)"',zonestr).group(1))
+            self.zonetitle = str(re.search(r'"(.*)"', zonestr).group(1))
             self.zonetype = str(mtch.group(3))
             self.ni = int(mtch.group(4))
             self.nj = int(mtch.group(5))
@@ -188,10 +196,12 @@ class TPHeaderZone:
             assert self.zonetitle is not None, "zone title phrasing failed."
         except SyntaxError:
             raise SyntaxError(f'Bad zone title format: {zonestr}')
+
     def to_string(self) -> str:
-        '''    use of exporting in .dat, return the zone line as a str for writing directly into the file.
-        :return: a str complied from the obj attributes as the zone line in the header
-        '''
+        """    use of exporting in .dat, return the zone line as a str for writing directly into the file.
+        :returns: a str complied from the obj attributes as the zone line in the header
+        >>> TPHeaderZone.to_string()
+        """
 
         output = f'Zone T = "{self.zonetitle}"'
         output = output + f', I = {int(self.ni)}, J = {int(self.nj)}, K = {int(self.nk)}, F = {self.F}'
@@ -202,9 +212,10 @@ class TPHeaderZone:
 
 
 class DSWinput:
-    """class for DSW input file such as LogVolts.in or SolarSim.in"""
+    """class for DSW input file such as LogVolts.in or SolarSim.in
+    >>> SScontrol = DSWinput('SolarSim.in')"""
 
-    def __init__(self, filename:str=None):
+    def __init__(self, filename: str = None):
         self.lines = ['']
         if filename is not None:
             self.filename = filename
@@ -212,12 +223,18 @@ class DSWinput:
         else:
             self.filename = None
 
-    def readfile(self, filename:str):
+    def readfile(self, filename: str):
+        """Read in the input file
+        :param filename: file name of the file to read in
+        >>> SScontrol = DSWinput.readfile('SolarSim.in')"""
         with open(filename) as f:
             self.lines = f.readlines()
 
-    def get_value(self, param:str):
-        """get the values of the parameter"""
+    def get_value(self, param: str):
+        """get the values of the parameter
+        :param param: name of the parameter to get the value of
+        >>> SScontrol = DSWinput.readfile('SolarSim.in')
+        >>> SScontrol.get_value('RoadFile')"""
         for l in self.lines:
             l = l.strip()
             if param in l:
@@ -225,9 +242,13 @@ class DSWinput:
                 return mtch.group(0).strip()
         raise ValueError("param not in input file")
 
-    def set_value(self, param:str, value:str):
-        """set the value of the parameter"""
-        vale = str(value)
+    def set_value(self, param: str, value: Union[str, float]):
+        """set the value of the parameter
+        :param param: name of the parameter to set the value off
+        :param value: the value to set the parameter to
+        >>> SScontrol = DSWinput.readfile('SolarSim.in')
+        >>> SScontrol.set_value('RadoFile','RoadWSC.dat')"""
+        value = str(value)
         for i, l in enumerate(self.lines):
             if param in l:
                 mtch = re.search(r'(?<==).+', l)
@@ -236,26 +257,34 @@ class DSWinput:
                 return 1
         raise ValueError("param not in input file")
 
-    def write_input(self, filename:str):
-        """write input file to a file"""
+    def write_input(self, filename: str):
+        """write input file to a file
+        :param filename: the name of the output file
+        >>> SScontrol = DSWinput.readfile('SolarSim.in')
+        >>> SScontrol.write_input('SolarSim.in')
+        """
         with open(filename, "w") as f:
             f.writelines(self.lines)
         return 1
 
-    def format(self,format:str):
-        r"""reformat the input file, changing path refrence to either windows (\) or linux(/)"""
-        format = format.lower()
+    def format(self, sysformat: str):
+        r"""reformat the input file, changing path refrence to either windows (\) or linux(/)
+        :param sysformat: system to format to ('lin' , 'win')
+        >>> SScontrol = DSWinput.readfile('SolarSim.in')
+        >>> SScontrol.format('lin',)
+        >>> SScontrol.format('win',)"""
+        sysformat = sysformat.lower()
         lines = self.lines
-        if format not in ['win','dos','unix','linux','lin']:
-            raise SyntaxError(f"{format} is not a valid format")
-        if format in ['win','dox']:
+        if sysformat not in ['win', 'dos', 'unix', 'linux', 'lin', 'windows']:
+            raise SyntaxError(f"{sysformat} is not a valid format")
+        if sysformat in ['win', 'dox', 'windows']:
             for i, line in enumerate(lines):
                 lines[i] = line.replace(r"/", r"\\")
-        if format in ['unix','linux','lin']:
+        if sysformat in ['unix', 'linux', 'lin']:
             for i, line in enumerate(lines):
                 lines[i] = line.replace(r"\\", r"/")
         self.lines = lines
 
+
 if __name__ == "__main__":  # pragma: no cover
     df = SSHistory(r"E:\solar_car_race_strategy\SolarSim\1.Const-Vel\History_70.0.dat")
-
