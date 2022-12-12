@@ -8,7 +8,6 @@ import pytest
 import S5
 
 
-
 def test_tecplotdata_constructor():
     TestTecplotData = TP.TecplotData()
     assert isinstance(TestTecplotData, TP.TecplotData)
@@ -207,11 +206,36 @@ def test_weather_add_timestamp(weather_file, count):
     weather.data['Day'] = [int(str((entry.day - baseline.day + 1))) for entry in correct_datetime]
     weather.data['Time (HHMM)'] = [int(str(entry.strftime('%H%M'))) for entry in correct_datetime]
     weather.add_timestamp(startday=baseline.strftime('%Y%m%d'))
-    print(f'correct datetime: \t {correct_datetime}')
-    print((weather.data["DateTime"]))
-    print(timedelta(seconds=count))
+    # print(f'correct datetime: \t {correct_datetime}')
+    # print((weather.data["DateTime"]))
+    # print(timedelta(seconds=count))
     pd.testing.assert_series_equal(weather.data['DateTime'], pd.Series(correct_datetime, name='DateTime'),
                                    check_index=False)
+
+
+@pytest.mark.parametrize('count', [random.randint(0, 10080) for i in range(5)])
+def test_weather_add_day_time_cols(weather_file, count):
+    weather = TP.SSWeather(weather_file)
+    weather.data = weather.data.iloc[[1, -1], :]
+    now = datetime.now()
+    baseline = datetime(now.year, now.month, random.randint(1, 23), now.hour, now.minute)
+    correct_datetime = [baseline, baseline + timedelta(minutes=count)]
+    weather.data.index = correct_datetime
+    weather.add_day_time_cols()
+    weather.add_timestamp(startday=baseline.strftime('%Y%m%d'))
+    # print(f'correct datetime: \t {correct_datetime}')
+    # print((weather.data["DateTime"]))
+    # print(timedelta(seconds=count))
+    pd.testing.assert_series_equal(weather.data['DateTime'], pd.Series(correct_datetime, name='DateTime'),
+                                   check_index=False, check_freq=False)
+    pd.testing.assert_series_equal(pd.Series(weather.data.index), weather.data['DateTime'], check_index=False,
+                                   check_names=False)
+
+
+def test_weather_add_day_time_cols_invalid_index(weather_file):
+    weather = TP.SSWeather(weather_file)
+    with pytest.raises(TypeError, match="Data index should be pd.DateTimeIndex."):
+        weather.add_day_time_cols()
 
 
 def test_read_DSWinput(solarsim_in):

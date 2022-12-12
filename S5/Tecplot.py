@@ -145,6 +145,16 @@ class SSWeather(TecplotData):
         self.data['DateTime'] = pd.to_datetime(startday.strftime('%Y%m%d') + self.data['DateTime'].dt.strftime('%H%M'))
         self.data['DateTime'] = self.data['DateTime'] + pd.to_timedelta(self.data[day] - 1, unit='D')
 
+    def add_day_time_cols(self):
+        """
+        Creates the 'Day' and 'Time' columns ina weather file when the dataframe is indexed by datetime.
+        """
+        # Check if the index is a DateTime index first before using it to create the dat and time columns.
+        if not isinstance(self.data.index, pd.DatetimeIndex):
+            raise TypeError("Data index should be pd.DateTimeIndex.")
+        self.data.loc[:, 'Day'] = self.data.index.day - self.data.index.day[0] + 1  # convert to day of race, 1 indexed
+        self.data.loc[:, 'Time (HHMM)'] = self.data.index.strftime("%H%M")
+
 
 class SSHistory(TecplotData):
     """Class that represents SolarSim History file"""
