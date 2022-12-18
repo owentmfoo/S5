@@ -144,7 +144,7 @@ def test_main(road_file, monkeypatch, tmpdir, mock_read_solcast_csv):
     WeatherTP.add_timestamp(startday='20191013')
     assert WeatherTP.data['DateTime'].nunique() == 6
 
-
+@pytest.mark.filterwarnings("ignore:In a future version.*")
 def test_main_mismatch_timezone(road_file, monkeypatch, tmpdir, mock_read_solcast_csv):
     RoadTP = TP.TecplotData(road_file)
     RoadTP.data.loc[:, 'File Name'] = RoadTP.data['Latitude'].astype(str) + '_' + RoadTP.data['Longitude'].astype(
@@ -163,13 +163,10 @@ def test_main_mismatch_timezone(road_file, monkeypatch, tmpdir, mock_read_solcas
     end_date = end_date.astimezone(pytz.timezone('Australia/Darwin'))
     csv_location = tmpdir
 
-    with pytest.warns(UserWarning) as warn:
+    with pytest.warns(UserWarning,
+                      match=r'Starting and ending time zone mismatch, using starting timezone as output timezone\.') as warn:
         solcast_historic.main(start_date, end_date, road_file, csv_location,
                               output_file=tmpdir / 'Weather-SolCast-temp.dat')
-
-    assert len(warn) == 1
-    assert warn[0].message.args[
-               0] == 'Starting and ending time zone mismatch, using starting timezone as output timezone.'
 
     WeatherTP = TP.SSWeather(tmpdir / 'Weather-SolCast-temp.dat')
     assert WeatherTP.data.loc[0, 'Time (HHMM)'] == 600
