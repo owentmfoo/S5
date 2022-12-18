@@ -1,12 +1,10 @@
 import random
-import warnings
 from datetime import datetime, timedelta
-from io import StringIO
-import S5.Tecplot as TP
+
 import pandas as pd
 import pytest
-import S5
 
+import S5.Tecplot as TP
 
 
 def test_tecplotdata_constructor():
@@ -207,11 +205,45 @@ def test_weather_add_timestamp(weather_file, count):
     weather.data['Day'] = [int(str((entry.day - baseline.day + 1))) for entry in correct_datetime]
     weather.data['Time (HHMM)'] = [int(str(entry.strftime('%H%M'))) for entry in correct_datetime]
     weather.add_timestamp(startday=baseline.strftime('%Y%m%d'))
-    print(f'correct datetime: \t {correct_datetime}')
-    print((weather.data["DateTime"]))
-    print(timedelta(seconds=count))
+    # print(f'correct datetime: \t {correct_datetime}')
+    # print((weather.data["DateTime"]))
+    # print(timedelta(seconds=count))
     pd.testing.assert_series_equal(weather.data['DateTime'], pd.Series(correct_datetime, name='DateTime'),
                                    check_index=False)
+
+
+@pytest.mark.parametrize('count', [random.randint(0, 10080) for i in range(5)])
+def test_weather_add_day_time_cols(weather_file, count):
+    weather = TP.SSWeather(weather_file)
+    weather.data = weather.data.iloc[[1, -1], :]
+    now = datetime.now()
+    baseline = datetime(now.year, now.month, random.randint(1, 23), now.hour, now.minute)
+    correct_datetime = [baseline, baseline + timedelta(minutes=count)]
+    weather.data.index = correct_datetime
+    weather.add_day_time_cols()
+    weather.add_timestamp(startday=baseline.strftime('%Y%m%d'))
+    # print(f'correct datetime: \t {correct_datetime}')
+    # print((weather.data["DateTime"]))
+    # print(timedelta(seconds=count))
+    pd.testing.assert_series_equal(weather.data['DateTime'], pd.Series(correct_datetime, name='DateTime'),
+                                   check_index=False, check_freq=False)
+    pd.testing.assert_series_equal(pd.Series(weather.data.index), weather.data['DateTime'], check_index=False,
+                                   check_names=False)
+
+
+def test_weather_add_day_time_cols_invalid_index(weather_file):
+    weather = TP.SSWeather(weather_file)
+    with pytest.raises(TypeError, match="Data index should be pd.DateTimeIndex."):
+        weather.add_day_time_cols()
+
+
+def test_weather_check_rectangular(weather_file):
+    weather = TP.SSWeather(weather_file)
+    weather.check_rectangular()
+
+    weather.data.loc[[0, 1], 'Time (HHMM)'] += 1
+    with pytest.warns(match=r'Zone data ni \(Time\) mismatch.'):
+        weather.check_rectangular()
 
 
 def test_read_DSWinput(solarsim_in):
@@ -234,7 +266,8 @@ def test_construct_DWSinnput():
 def test_DSWinput_get_value(solarsim_in):
     ssin = TP.DSWinput(solarsim_in)
     assert ssin.get_value(
-        "Title").strip() == r'"SolarSim4.1, WSC, Aero202, CRR(Schwalbe)=0.013, 2xDriveTek MPPTs, LGChem-35s12p-20200412"'
+        "Title").strip() == r'"SolarSim4.1, WSC, Aero202, CRR(Schwalbe)=0.013, 2xDriveTek MPPTs, ' \
+                            r'LGChem-35s12p-20200412"'
     assert ssin.get_value('DriverOutOfCarTime (s)') == "15"
 
 

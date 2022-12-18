@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import Union
 
@@ -25,18 +26,23 @@ class TecplotData:
         else:
             self.filename = None
 
-    def readfile(self, filename) -> None:
-        """populate the class attributes from the file, data is available in self.data as pandas.dataframe
-        :param filename: file name of .dat file or pathlib.Path object of equivalent
-        :return None: None, data are stored as attributes in the class object.
+    def readfile(self, filename: Union[str, os.PathLike]) -> None:
+        """
+        Read the file and load populate self.data with the contents.
+        Args:
+            filename: Path to datafile in Tecplot format.
 
-        >>> TecplotData.readfile("Velocity.dat")
+        Returns:
+            None, data from the file is loaded into the instance as the self.data attribute
+
+        Examples:
+            TecplotData.readfile("Velocity.dat")
         """
         '''
         This will act as the base class for specific filed (e.g. History, Weather, Motor)
         '''
-        if not (isinstance(filename, pathlib.Path) or isinstance(filename, str)):
-            raise TypeError("filename should either be string or pathlib.Path")
+        if not (isinstance(filename, os.PathLike) or isinstance(filename, str)):
+            raise TypeError("filename should either be string or os.PathLike")
         if isinstance(filename, pathlib.Path):
             filename = str(filename)
         self.filename = filename
@@ -113,7 +119,7 @@ class TecplotData:
         """checks the zone detail matches the dataframe
         :return bool: False if there is zone detail mismatch
         >>> TecplotData.check_zone()"""
-        if (self.zone.ni * self.zone.nj * self.zone.nk != self.data.shape[0]):
+        if self.zone.ni * self.zone.nj * self.zone.nk != self.data.shape[0]:
             warnings.warn("Zone detail mismatch")
             return False
         return True
@@ -124,26 +130,56 @@ class TecplotData:
         buf.write(f"{self.zone.__repr__()}\n")
         buf.write(self.data.__repr__())
         return buf.getvalue()
+    # deal with 3d data?
 
 
-# deal with 3d data?
 class SSWeather(TecplotData):
-    """Class that represents SolarSim Weather file"""
-    def add_timestamp(self, startday='19990716', day='Day', time='Time (HHMM)'):
-        """
-        DSW SolarSim Weather file Specific Function
-        create a timestamp column in the dataframe if the file have day and time column in the DSWSS format
-        :argument day: column name for the day column
-        :argument time: column name for the time column
-        :argument startday: first day of the race
-        >>> SSWeather.add_timestamp(startday='13102019')
-        >>> SSWeather.add_timestamp(startday='13102019', day = 'Day', time = 'Time (HHMM)')
+    """Class that represents a SolarSim Weather file"""
+
+    def add_timestamp(self, startday: str, day: str = 'Day', time: str = 'Time (HHMM)') -> None:
+        """Use the 'Day' and 'Time (HHMM)' columns to create a 'DateTime' column.
+
+        Args:
+            startday: First day of the race in the format 'DDMMYYYY'.
+            day: Column name for the day column, default 'Day'.
+            time: Column name for the time column, default 'Time (HHMM)'.
+
+        Returns:
+            None, modifies the self.data and adds a new column named 'DateTime'.
+
+        Examples:
+            >>> SSWeather.add_timestamp(startday='13102019')
+            >>> SSWeather.add_timestamp(startday='13102019', day = 'Day', time = 'Time (HHMM)')
         """
         startday = pd.to_datetime(startday)
         self.data['DateTime'] = pd.to_datetime(
             self.data[time].astype(int).astype(str).str.pad(4, side='left', fillchar='0'), format='%H%M')
         self.data['DateTime'] = pd.to_datetime(startday.strftime('%Y%m%d') + self.data['DateTime'].dt.strftime('%H%M'))
         self.data['DateTime'] = self.data['DateTime'] + pd.to_timedelta(self.data[day] - 1, unit='D')
+
+    def add_day_time_cols(self):
+        """
+        Creates the 'Day' and 'Time' columns ina weather file when the dataframe is indexed by datetime.
+        """
+        # Check if the index is a DateTime index first before using it to create the dat and time columns.
+        if not isinstance(self.data.index, pd.DatetimeIndex):
+            raise TypeError("Data index should be pd.DateTimeIndex.")
+        self.data.loc[:, 'Day'] = self.data.index.day - self.data.index.day[0] + 1  # convert to day of race, 1 indexed
+        self.data.loc[:, 'Time (HHMM)'] = self.data.index.strftime("%H%M")
+
+    def check_rectangular(self):
+        """Checks if the weather file is a fully rectangular grid in space and time.
+
+        Sometimes measurements are taken at slightly different time at each station.
+        For example: 3 minute past the hour at Darwin but 6 minute past the hour at Coober Pedy.
+        The means that although there may be the same amount of points at both location, there are double the amount
+        of unique DateTime in the file, messing up the j index value in the zone data.
+        """
+        if self.zone.nj != self.data['Distance (km)'].nunique():
+            warnings.warn('Zone data nj (Distance) mismatch.')
+        if self.zone.ni != (
+                self.data['Time (HHMM)'].astype(str) + self.data['Day'].astype(str)).nunique():
+            warnings.warn('Zone data ni (Time) mismatch.')
 
 
 class SSHistory(TecplotData):
