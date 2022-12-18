@@ -29,7 +29,7 @@ def test_set_mean():
 def test_set_mean_clip_kph_lin():
     x = np.linspace(0, 10, 101)
     y = x.copy()
-    y[random.randint(0,101)] = 100
+    y[random.randint(0, 100)] = 100
     z = set_mean(y, 70, x, 8, 'kph')
     assert np.trapz(z, x) / (x.max() - x.min()) == approx(70)
     assert z.max() == approx(130)
