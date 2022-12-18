@@ -1,8 +1,8 @@
 import datetime
 import os
 from typing import Union
+from unittest import mock
 
-import mock
 import numpy as np
 import pandas as pd
 import pytest
