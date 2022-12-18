@@ -1,11 +1,10 @@
 import random
-import warnings
 from datetime import datetime, timedelta
-from io import StringIO
-import S5.Tecplot as TP
+
 import pandas as pd
 import pytest
-import S5
+
+import S5.Tecplot as TP
 
 
 def test_tecplotdata_constructor():
@@ -238,6 +237,15 @@ def test_weather_add_day_time_cols_invalid_index(weather_file):
         weather.add_day_time_cols()
 
 
+def test_weather_check_rectangular(weather_file):
+    weather = TP.SSWeather(weather_file)
+    weather.check_rectangular()
+
+    weather.data.loc[[0, 1], 'Time (HHMM)'] += 1
+    with pytest.warns(match=r'Zone data ni \(Time\) mismatch.'):
+        weather.check_rectangular()
+
+
 def test_read_DSWinput(solarsim_in):
     ssin = TP.DSWinput(str(solarsim_in))
     assert isinstance(ssin, TP.DSWinput)
@@ -258,7 +266,8 @@ def test_construct_DWSinnput():
 def test_DSWinput_get_value(solarsim_in):
     ssin = TP.DSWinput(solarsim_in)
     assert ssin.get_value(
-        "Title").strip() == r'"SolarSim4.1, WSC, Aero202, CRR(Schwalbe)=0.013, 2xDriveTek MPPTs, LGChem-35s12p-20200412"'
+        "Title").strip() == r'"SolarSim4.1, WSC, Aero202, CRR(Schwalbe)=0.013, 2xDriveTek MPPTs, ' \
+                            r'LGChem-35s12p-20200412"'
     assert ssin.get_value('DriverOutOfCarTime (s)') == "15"
 
 
