@@ -45,3 +45,8 @@ test = [
  	        "smoke: subset of tests",
  	        "exception: check for expected exceptions"
  	]
+ 	filterwarnings = [
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning:pandas.*",
+    "ignore: In a future version, `df.iloc[:, i] = newvals`.*:FutureWarning",
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning:numpy.*"
+]
