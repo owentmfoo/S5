@@ -12,6 +12,10 @@ def convert_wind(input_wind_vel: pd.Series, wind_level=10):
         wind_level: level of the the wind velocity in meters
     Returns:
         A pa.Series of wind converted to 1m.
+
+    Examples:
+        >>> df.loc[:,'WindVel (m/s)'] = convert_wind(df.loc[:,'10m WindVel (m/s)'])
+
     """
     zcar = 1
     z0 = 0.01
