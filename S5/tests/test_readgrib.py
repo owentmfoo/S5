@@ -32,6 +32,24 @@ def test_cumulative_ssr_to_hourly_complex():
     np.testing.assert_allclose(np.concatenate((x, y, z)), hourly)
 
 
+def test_calculate_wind():
+    """Test if the logic is correct
+        u10 and v10 are in m/s
+        u10 is eastward +ve, v10 is northward +ve
+    """
+    weather = pd.DataFrame()
+    weather['u10'] = [0, 1, 0, 1]
+    weather['v10'] = [0, 0, 1, 1]
+    weather = readgrib._calculate_wind(weather)
+    assert weather['10m WindVel (m/s)'].iloc[0] == 0
+    assert weather['10m WindVel (m/s)'].iloc[1] == 1
+    assert weather['10m WindVel (m/s)'].iloc[2] == 1
+    assert np.isclose(weather['10m WindVel (m/s)'].iloc[3], np.sqrt(2))
+    assert weather['WindDir (deg)'].iloc[1] == 270
+    assert weather['WindDir (deg)'].iloc[2] == 0
+    assert weather['WindDir (deg)'].iloc[3] == 315
+
+
 @pytest.fixture()
 def grib_df():
     csv = StringIO("""time,step,u10,v10,t2m,ssr,sp,ssrd,number,surface,latitude,longitude,valid_time

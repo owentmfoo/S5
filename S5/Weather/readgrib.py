@@ -53,8 +53,9 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
 
     """
     Extract from era5 documentation:
-        u10 and v10 are already in ms-1
-        u10 is eastward +ve, v10 is northward +ve
+    https://confluence.ecmwf.int/display/CKB/ERA5-Land%3A+data+documentation#heading-Table2streamopermnthmodalevtypesfcsurfaceparametersinstantaneous
+        u10 and v10 are in m/s
+        u10 is towards the east, v10 is towards the north
         sp in Pa
         t2m in K
         ssr: Surface net solar radiation (J/m2), 'surface_net_downward_shortwave_flux'
@@ -71,12 +72,12 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
     if df.isna().sum().max() == df.shape[0]:
         return None
 
-    weather = df[[]].copy()
+    weather = pd.DataFrame(index=df.index)
     weather["Distance (km)"] = distance
 
-    weather.loc[:, "10m WindVel (m/s)"] = (df['u10'] ** 2 + df['v10'] ** 2) ** 0.5
-    weather.loc[:, "WindDir (deg)"] = np.mod(np.rad2deg(-np.arctan2(df['v10'], -df['u10'])) + 90, 360)
-    # todo: check if wind dir is correct,"WindDir (deg)" is direction it's coming from?
+    df = _calculate_wind(df)
+    weather[["10m WindVel (m/s)", "WindVel (m/s)", "WindDir (deg)"]] = df[
+        ["10m WindVel (m/s)", "WindVel (m/s)", "WindDir (deg)"]]
     weather.loc[:, "AirPress (Pa)"] = df['sp']
     weather.loc[:, "AirTemp (degC)"] = df['t2m'] - 273.15  # convert from k to degC
 
@@ -105,9 +106,25 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
     WeatherTP.add_day_time_cols()
     weather = WeatherTP.data
 
-    weather.loc[:, 'WindVel (m/s)'] = convert_wind(weather.loc[:, '10m WindVel (m/s)'])
-
     return weather
+
+
+def _calculate_wind(df):
+    """ Private function to convert the 10m u v component of wind to direction and velocity
+
+    According to era5 documentation, u10 is towards the east, v10 is towards the north, both in m/s at 10m.
+    WindDir is the direction the wind is coming from.
+
+    Args:
+        df: Pandas Dataframe with the columns 'v10' and 'u10'.
+
+    Returns:
+        Pandas Dataframe with columns "10m WindVel (m/s)", "WindVel (m/s)", "WindDir (deg)".
+    """
+    df.loc[:, "10m WindVel (m/s)"] = (df['u10'] ** 2 + df['v10'] ** 2) ** 0.5
+    df.loc[:, "WindDir (deg)"] = np.mod(np.rad2deg(-np.arctan2(df['v10'], -df['u10'])) + 90, 360)
+    df.loc[:, "WindVel (m/s)"] = convert_wind(df.loc[:, '10m WindVel (m/s)'])
+    return df
 
 
 def extract_df(ds: xr.Dataset, latitude: float, longitude: float, start_date: datetime.datetime,
