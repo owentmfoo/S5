@@ -6,7 +6,6 @@ import S5.Tecplot as TP
 import S5
 
 
-
 @pytest.fixture()
 def history_df():
     """Returns a dataframe with contents in a typical history file."""
@@ -121,4 +120,21 @@ Zone T = "Gradinet", I = 2, J = 2, K = 1, F = POINT
      7   2100    0.000      0 523.365491 91.585884   90.0 28.716767 97906.246739      0      0
      1    100 3029.189      0 523.365491 18.302102   90.0 28.716767 97906.246739      0      0
      7   2100 3029.189      0 523.365491 18.302102   90.0 28.716767 97906.246739      0      0""")
+    return filepath
+
+
+@pytest.fixture(scope="session")
+def road_file(tmp_path_factory):
+    """Returns a typical road file"""
+    filepath = tmp_path_factory.mktemp("data") / "Road_test.dat"
+    with open(filepath, 'w') as file:
+        file.write(
+            """Title = "Stuart Highway - Altitudes, Headings, Latitude, and Longitude from Google Maps, Speed Limits from WSC2017 Route Notes"
+Variables = "Distance (km)", "Altitude (m)", "Heading (deg)", "SpeedLimit (km/h)", "Latitude", "Longitude"
+Zone T = "Stuart Highway", I=5, J=1, K=1, F=POINT
+       0.000         24.7        318.7         50.0        -12.46597        130.84273
+       30.25         25.0         17.3         50.0        -16.46571        131.54249
+       70.16         24.8         61.4         50.0        -18.46555        128.08255
+       100.53        24.8         43.3         50.0        -25.46545        122.45274
+       250.6         25.0         44.3         50.0        -53.46534        127.84284""")
     return filepath

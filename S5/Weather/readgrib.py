@@ -2,13 +2,14 @@
 TODO: doctrings
 TODO: type hints
 TODO: tests
+Solar were not in direct and diffuse radiation, useful for generating EV weather file,
 """
 import warnings
 import datetime
 import xarray as xr
 
-# TODO: move to S5.__init__ ? it is supressde everytime S5 is imported?
-warnings.simplefilter(action='ignore', category=FutureWarning)
+# TODO: move to S5.__init__ ? it is suppressed everytime S5 is imported?
+# warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 import numpy as np
 from pvlib import solarposition
@@ -18,55 +19,51 @@ import S5.Tecplot as TP
 from S5.Weather import convert_wind
 
 
-def era5_spot(dataset, start_date=None, end_date=None, tz=None, latitude=54.766776, longitude=358.430261,
-              elevation=0, distance=0):
-    # specific to era5 data.
-    # start and end date are datetime objs
-    # assume grib file downloaded somewhere
-    ds = dataset
-    forecast_time = ds.time.data
+def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_date: datetime.datetime = None,
+              latitude: float = 54.766776, longitude: float = 358.430261,
+              elevation: float = 0, distance: float = 0):
     # TODO: need hour and round off to nearest hour.
-
-    # check requested time period is valid
-    if np.datetime64(start_date.strftime("%Y-%m-%dT%H:00")) not in ds.valid_time.data:
-        raise IndexError("start date out of range of grib file")
-    if np.datetime64(end_date.strftime("%Y-%m-%dT%H:00")) not in ds.valid_time.data:
-        raise IndexError("end date out of range of grib file")
-
-    if start_date.tzinfo is None or end_date.tzinfo is None:
+    if start_date.tzinfo is None:
         print('TimeZone info not specified, using "Australia/Darwin"')
         tz = pytz.timezone('Australia/Darwin')
         start_date.replace(tzinfo=tz)
         end_date.replace(tzinfo=tz)
-    else:
-        tz = start_date.tzinfo
+    elif start_date.tzinfo != end_date.tzinfo:
+        warnings.warn('Starting and ending time zone mismatch, using starting timezone as output timezone.')
+    tz = start_date.tzinfo
 
     # convert timezone to UTC (era5 default)
     start_date = start_date.astimezone(pytz.timezone('UTC'))
     end_date = end_date.astimezone(pytz.timezone('UTC'))
-    step = np.datetime64(start_date.strftime("%Y%m%d%H%M")) - forecast_time
 
-    # need to do sel twice because slice does not like method
-    df = ds.sel(latitude=latitude, longitude=longitude, method='nearest').sel(
-        time=slice(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))).get(ds.keys()).to_dataframe()
+    # check requested time period is valid
+    if np.datetime64(start_date.strftime("%Y-%m-%dT%H:00")) not in dataset.valid_time.data:
+        raise IndexError("start date out of range of grib file")
+    if np.datetime64(end_date.strftime("%Y-%m-%dT%H:00")) not in dataset.valid_time.data:
+        raise IndexError("end date out of range of grib file")
+
+    df = extract_df(dataset, latitude, longitude, start_date, end_date)
 
     # reshape the dataframe now...
     df.reset_index(inplace=True)
-    df.set_index('valid_time', inplace=True)  # TODO: timezone??
+    df.set_index('valid_time', inplace=True)
+    df = df.tz_localize('UTC')
     df.drop(['time', 'step'], axis=1, inplace=True)
     df.index.name = 'DateTime'
 
-    # u10 and v10 are already in ms-1
-    # u10 is eastward +ve, v10 is northward +ve
-    # sp in Pa
-    # t2m in K
-    # ssr: Surface net solar radiation (J/m2), 'surface_net_downward_shortwave_flux'
-    # This parameter is the amount of solar radiation (also known as shortwave radiation) that reaches a horizontal
-    # plane at the surface of the Earth (both direct and diffuse) minus the amount reflected by the Earth's surface
-    # (which is governed by the albedo).
-
-    # ssrd: Surface solar radiation downwards (J/m2), 'surface_downwelling_shortwave_flux_in_air'
-    # ssr but does not minus the amount reflected by the Earth's surface.
+    """
+    Extract from era5 documentation:
+        u10 and v10 are already in ms-1
+        u10 is eastward +ve, v10 is northward +ve
+        sp in Pa
+        t2m in K
+        ssr: Surface net solar radiation (J/m2), 'surface_net_downward_shortwave_flux'
+        This parameter is the amount of solar radiation (also known as shortwave radiation) that reaches a horizontal
+        plane at the surface of the Earth (both direct and diffuse) minus the amount reflected by the Earth's surface
+        (which is governed by the albedo).
+        ssrd: Surface solar radiation downwards (J/m2), 'surface_downwelling_shortwave_flux_in_air'
+        ssr but does not minus the amount reflected by the Earth's surface.
+    """
 
     # TODO: replace this with one that checks all data are not available.
     # TODO: if solar is False then it is fine to not have SSR at all.
@@ -75,7 +72,8 @@ def era5_spot(dataset, start_date=None, end_date=None, tz=None, latitude=54.7667
         return None
 
     weather = df[[]].copy()
-    # weather = pd.DataFrame(index = df.index)
+    weather["Distance (km)"] = distance
+
     weather.loc[:, "10m WindVel (m/s)"] = (df['u10'] ** 2 + df['v10'] ** 2) ** 0.5
     weather.loc[:, "WindDir (deg)"] = np.mod(np.rad2deg(-np.arctan2(df['v10'], -df['u10'])) + 90, 360)
     # todo: check if wind dir is correct,"WindDir (deg)" is direction it's coming from?
@@ -88,19 +86,20 @@ def era5_spot(dataset, start_date=None, end_date=None, tz=None, latitude=54.7667
     weather.loc[:, "SunElevation (deg)"] = solpos['apparent_elevation']
 
     # convert cumulative sum to hourly total
-    ssrnp = df['ssr'].to_numpy()
-    SSR = cumulative_SSR_to_hourly(start_date, end_date, ssrnp)
+    cum_ssr = df['ssr'].to_numpy()
+    SSR = cumulative_ssr_to_hourly(cum_ssr)
+    df['ssr'] = SSR
 
     ssr_to_direct_and_diffuse(SSR, weather)
 
-    weather["Distance (km)"] = distance
-    # TODO: do we want this? need to make sure to grid is fully rectangular. Should interpolate instaed?
+    # TODO: do we want this? need to make sure to grid is fully rectangular.
+    #  Should we interpolate instead so we don't lose too many points?
     weather.dropna(inplace=True)
-    weather = weather.tz_localize('UTC')
     weather = weather.tz_convert(tz)
     weather = weather[start_date:end_date]
 
     # put it in a SSWeather object to generate the day and time columns.
+    # TODO: can we generate it in from_era5 just before writing to file?
     WeatherTP = TP.SSWeather()
     WeatherTP.data = weather
     WeatherTP.add_day_time_cols()
@@ -109,6 +108,27 @@ def era5_spot(dataset, start_date=None, end_date=None, tz=None, latitude=54.7667
     weather.loc[:, 'WindVel (m/s)'] = convert_wind(weather.loc[:, '10m WindVel (m/s)'])
 
     return weather
+
+
+def extract_df(ds: xr.Dataset, latitude: float, longitude: float, start_date: datetime.datetime,
+               end_date: datetime.datetime) -> pd.DataFrame:  # pragma: no cover
+    """ Extract subset of data from grib file through xarray as a pandas dataframe.
+
+    Args:
+        ds: xarray dataset of the grib file.
+        latitude: Latitude.
+        longitude: Longitude.
+        start_date: Start date of the period to be extracted in UTC.
+        end_date: End date of the period to be extracted in UTC.
+
+    Returns:
+        pandas dataframe that contains the raw extracted data.
+    """
+    # extracted this as a method to help with mocking, excluded from test coverage as this uses exclusively xarray APIs.
+    # need to do ds.sel twice because time slicing does not work with method.
+    df = ds.sel(latitude=latitude, longitude=longitude, method='nearest').sel(
+        time=slice(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))).get(ds.keys()).to_dataframe()
+    return df
 
 
 def ssr_to_direct_and_diffuse(SSR, weather):
@@ -121,14 +141,22 @@ def ssr_to_direct_and_diffuse(SSR, weather):
     weather.loc[:, "DiffuseSun (W/m2)"] = 0
 
 
-def cumulative_SSR_to_hourly(start_date, end_date, cumulative_ssr):
-    # TODO: decide function name
+def cumulative_ssr_to_hourly(cumulative_ssr: np.ndarray) -> np.ndarray:
+    """Converts the cumulative surface net solar radiation (ssr) to the hourly ssr.
 
-    # TODO: what if the number of points per day are different?
-    daily = np.split(cumulative_ssr, (end_date.date() - start_date.date()).days + 1)
+    Args:
+        cumulative_ssr: Array of cumulative ssr.
+
+    Returns:
+        Numpy array of hourly ssr.
+    """
+    # identify the point to split by the fact that the last sample point should only be larger than the next one when it
+    #  is a new day it was reset to 0.
+    is_new_day = cumulative_ssr[:-1] > cumulative_ssr[1:]
+    daily = np.split(cumulative_ssr, np.argwhere(is_new_day).flatten() + 1)
     hourly_ssr = np.array([])
     for day in daily:
-        converted_day = (day - np.insert(day, 0, 0)[:-1])
+        converted_day = day - np.insert(day, 0, 0)[:-1]
         hourly_ssr = np.concatenate([hourly_ssr, converted_day])
     return hourly_ssr
 
@@ -146,11 +174,13 @@ def from_era5(stationfile, gribfile, start_date, end_date, outfile="Weather-era5
 
     >>> from_era5('Weather/Station.dat', 'ExampleDataSource/ERA5-Land-test.grib', datetime.datetime(2020, 9, 14, 0, 0), datetime.datetime(2020, 9, 14, 0, 0))
     """
-    debug = False
+    debug = False  # TODO: better way to do this <--
     WeatherTP = TP.SSWeather()
 
-    station = TP.TecplotData()
-    station.readfile(stationfile)
+    station = TP.TecplotData(stationfile)
+    for col_name in ['Distance (km)', 'Latitude', 'Longitude', 'Altitude (m)']:
+        if col_name not in station.data.columns:
+            raise IndexError(f'{col_name} is missing from Road file {station}')
     # assert dtype
 
     ds = xr.open_dataset(gribfile, engine='cfgrib')
@@ -188,28 +218,28 @@ def from_era5(stationfile, gribfile, start_date, end_date, outfile="Weather-era5
     WeatherTP.zone.zonetitle = "S5Weather"
     WeatherTP.title = "Weather file generated by S5.from_era5"
 
+    # TODO: use __debug__ instad?
     if not debug:
         WeatherTP.data.rename(columns={"DirectSun_uncorrected (W/m2)": "DirectSun (W/m2)"}, inplace=True)
         WeatherTP.data = WeatherTP.data.loc[:,
                          ["Day", "Time (HHMM)", "Distance (km)", "DirectSun (W/m2)", "DiffuseSun (W/m2)",
                           "SunAzimuth (deg)",
                           "SunElevation (deg)", "AirTemp (degC)", "AirPress (Pa)", "WindVel (m/s)", "WindDir (deg)"]]
+
     WeatherTP.check_rectangular()
     WeatherTP.write_tecplot(outfile)
     print(f'Weather file {outfile} created.')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     # stationfile = 'E:\solar_car_race_strategy\S5\S5\Weather\Station.dat'
     STATION_FILE = r'E:\solar_car_race_strategy\SolCastHistoric\Road-SolCast-10km.dat'
-    GRIB_FILE = 'E:\solar_car_race_strategy\S5\ExampleDataSource\ERA5-Land-test.grib'
+    GRIB_FILE = r'E:\solar_car_race_strategy\S5\ExampleDataSource\ERA5-Land-test.grib'
     TZ = pytz.timezone('Australia/Darwin')
     START_DATE = datetime.datetime(2020, 9, 14, 0, 0, tzinfo=TZ)
     END_DATE = datetime.datetime(2020, 9, 15, 23, 0, tzinfo=TZ)
-    import datetime
-
     start = datetime.datetime.now()
-    from_era5(STATION_FILE, GRIB_FILE, START_DATE, END_DATE, outfile='E:\Weather-era5byS5-tmp.dat',
+    from_era5(STATION_FILE, GRIB_FILE, START_DATE, END_DATE, outfile=r'E:\Weather-era5byS5-tmp.dat',
               Solar=True)
     duration = datetime.datetime.now() - start
     print(f'Time taken: {duration}')

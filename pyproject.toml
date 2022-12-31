@@ -36,6 +36,7 @@ test = [
 grib = [
     "xarray",
     "cfgrib",
+    "eccodes",
 ]
 
 [tool.pytest.ini_options]
