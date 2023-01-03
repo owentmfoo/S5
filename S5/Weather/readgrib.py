@@ -2,7 +2,9 @@
 TODO: doctrings
 TODO: type hints
 TODO: tests
-Solar were not in direct and diffuse radiation, useful for generating EV weather file,
+The core functionality of reading era5 grib files are here, but do note that this is not tested extensively.
+Solar irradiance were not in direct and diffuse radiation, so until there is a good was to convert them to direct and
+diffuse irradiance it might only be useful for generating EV weather file where solar irradiance is not needed.
 """
 import warnings
 import datetime
@@ -22,7 +24,26 @@ from S5.Weather import convert_wind
 def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_date: datetime.datetime = None,
               latitude: float = 54.766776, longitude: float = 358.430261,
               elevation: float = 0, distance: float = 0):
-    # TODO: need hour and round off to nearest hour.
+    """Extract data from era5 grib file for a single spot in space.
+
+    Wind direction, wind velocity, temperature, and pressure are extracted from the grib file.
+    The azimuth and elevation are calculated using pvlib.solarposition.
+
+    Args:
+        dataset: xarray dataset with the grib file opened.
+        start_date: Start date and time with timezone.
+        end_date: End date and time with timezone.
+        latitude: Latitude of the location in decimal degrees.
+        longitude: Longitude of the location in decimal degrees
+        elevation: Elevation of the spot in meters
+        distance: Distance along the route.
+
+    Returns:
+        A pandas dataframe with the weather data.
+
+    Raises:
+        IndexError: When the start or end date are outside of the
+    """
     if start_date.tzinfo is None:
         print('TimeZone info not specified, using "Australia/Darwin"')
         tz = pytz.timezone('Australia/Darwin')
@@ -93,18 +114,12 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
 
     ssr_to_direct_and_diffuse(SSR, weather)
 
-    # TODO: do we want this? need to make sure to grid is fully rectangular.
-    #  Should we interpolate instead so we don't lose too many points?
+    # TODO: This is to make sure the grid is fully rectangular, potential improvements can be done in the future by
+    #  interpolate missing points instead of dropping them so we don't lose too many points.
     weather.dropna(inplace=True)
+
     weather = weather.tz_convert(tz)
     weather = weather[start_date:end_date]
-
-    # put it in a SSWeather object to generate the day and time columns.
-    # TODO: can we generate it in from_era5 just before writing to file?
-    WeatherTP = TP.SSWeather()
-    WeatherTP.data = weather
-    WeatherTP.add_day_time_cols()
-    weather = WeatherTP.data
 
     return weather
 
@@ -225,10 +240,7 @@ def from_era5(stationfile, gribfile, start_date, end_date, outfile="Weather-era5
         WeatherTP.data = pd.DataFrame.append(Start, WeatherTP.data)
 
     WeatherTP.data.sort_values(by=['Distance (km)', 'DateTime'], inplace=True)
-    # WeatherTP.data.drop(columns='DateTime', inplace=True)
-    WeatherTP.data.loc[:, 'Time (HHMM)'] = WeatherTP.data.loc[:, 'Time (HHMM)'].astype('str').str.pad(width=4,
-                                                                                                      side='left',
-                                                                                                      fillchar='0')
+    WeatherTP.add_day_time_cols()
     WeatherTP.zone = TP.TPHeaderZone()
     WeatherTP.zone.nj = WeatherTP.data.loc[:, 'Distance (km)'].nunique()
     WeatherTP.zone.ni = WeatherTP.data.iloc[:, 0].count() / WeatherTP.zone.nj

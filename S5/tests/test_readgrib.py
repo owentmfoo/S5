@@ -1,3 +1,9 @@
+"""
+Test Strategy:
+- Single end to end test, compare with previous output.
+- Minimal testing on xarray and reading of grib file as they were tested externally.
+- TODO: Test for ssr_to_direct_and_diffuse to be added when function is finalised.
+"""
 import pandas as pd
 import pytest
 import numpy as np
@@ -8,12 +14,6 @@ import datetime
 import pytz
 import xarray
 
-"""
-Test Strategy.
-Single end to end test, compare with previous output
-Minimal testing on xarray and reading of grib file as they were tested externally.
-TODO: Test for ssr_to_direct_and_diffuse to be added when function is finalised.  
-"""
 
 
 def test_cumulative_ssr_to_hourly_one_day():
