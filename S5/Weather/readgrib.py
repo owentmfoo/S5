@@ -9,9 +9,6 @@ diffuse irradiance it might only be useful for generating EV weather file where 
 import warnings
 import datetime
 import xarray as xr
-
-# TODO: move to S5.__init__ ? it is suppressed everytime S5 is imported?
-# warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 import numpy as np
 from pvlib import solarposition
@@ -226,7 +223,7 @@ def from_era5(stationfile, gribfile, start_date, end_date, outfile="Weather-era5
         if weather is None:
             warnings.warn(f"Spot weather at row {i}, location {latitude},{longitude} received NaN from Grib file.")
         else:
-            WeatherTP.data = pd.DataFrame.append(WeatherTP.data, weather)
+            WeatherTP.data = pd.concat([WeatherTP.data, weather], axis='index')
     ds.close()
 
     if not Solar:
