@@ -3,11 +3,14 @@ TODO: doctrings
 TODO: type hints
 TODO: tests
 The core functionality of reading era5 grib files are here, but do note that this is not tested extensively.
-Solar irradiance were not in direct and diffuse radiation, so until there is a good was to convert them to direct and
-diffuse irradiance it might only be useful for generating EV weather file where solar irradiance is not needed.
+Solar irradiance were not in direct and diffuse radiation, so until there is a good way to convert them to direct and
+diffuse irradiance it might only be useful for generating EV weather files where solar irradiance data is not needed.
 """
+import os
 import warnings
 import datetime
+from typing import Union
+
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -190,18 +193,24 @@ def cumulative_ssr_to_hourly(cumulative_ssr: np.ndarray) -> np.ndarray:
     return hourly_ssr
 
 
-def from_era5(stationfile, gribfile, start_date, end_date, outfile="Weather-era5byS5.dat", Solar=True):
-    """
-    create solarsim weather file from era5 grib files
-    :param stationfile: file path to .dat file with station details.0
-    :param gribfile: file path to grib file to be used
-    :param start_date: datetime object
-    :param end_date: datetime object
-    :param outfile: file path and name to create output file
-    :param Solar: bool, False to disable irradiance output (all 0)
-    :return: None, weather file will be created and stored at location specified by outfile
+def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.PathLike], start_date: datetime.datetime,
+              end_date: datetime.datetime, outfile: Union[str, os.PathLike] = "Weather-era5byS5.dat",
+              Solar: bool = True) -> None:
+    """Create solarsim weather file from era5 grib files.
 
-    >>> from_era5('Weather/Station.dat', 'ExampleDataSource/ERA5-Land-test.grib', datetime.datetime(2020, 9, 14, 0, 0), datetime.datetime(2020, 9, 14, 0, 0))
+    Args:
+        stationfile: File path to .dat file with station details.
+        gribfile: File path to grib file to be used downloaded from era5
+        start_date: Start date and time including timezone.
+        end_date: End date and time including timezone.
+        outfile: Name of the output file.
+        Solar: False to disable irradiance output (all 0).
+
+    Returns:
+        None, SolarSim weather file created at outfile.
+
+    Examples:
+        >>> from_era5('Station.dat', 'ERA5-Land.grib', datetime.datetime(2020, 9, 14, 0, 0), datetime.datetime(2020, 9, 15, 0, 0))
     """
     debug = False  # TODO: better way to do this <--
     WeatherTP = TP.SSWeather()
