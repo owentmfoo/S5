@@ -5,6 +5,9 @@ TODO: tests
 The core functionality of reading era5 grib files are here, but do note that this is not tested extensively.
 Solar irradiance were not in direct and diffuse radiation, so until there is a good way to convert them to direct and
 diffuse irradiance it might only be useful for generating EV weather files where solar irradiance data is not needed.
+
+See Also:
+    S5.Weather.solcast_historic for historic data with direct and diffuse irradiation.
 """
 import os
 import warnings
@@ -110,9 +113,9 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
     # convert cumulative sum to hourly total
     cum_ssr = df['ssr'].to_numpy()
     SSR = cumulative_ssr_to_hourly(cum_ssr)
-    df['ssr'] = SSR
+    weather['ssr'] = SSR
 
-    ssr_to_direct_and_diffuse(SSR, weather)
+    ssr_to_direct_and_diffuse(weather)
 
     # TODO: This is to make sure the grid is fully rectangular, potential improvements can be done in the future by
     #  interpolate missing points instead of dropping them so we don't lose too many points.
@@ -163,14 +166,25 @@ def extract_df(ds: xr.Dataset, latitude: float, longitude: float, start_date: da
     return df
 
 
-def ssr_to_direct_and_diffuse(SSR, weather):
-    # TODO: Refactor to work on np array
-    weather.loc[:, "DirectSun_uncorrected (W/m2)"] = SSR / 3600
+def ssr_to_direct_and_diffuse(weather: pd.DataFrame) -> pd.DataFrame:
+    """Temporary implementation to convert surface net solar radiation (ssr) to direct and diffuse.
+
+    The fact is it is just not the same thing, this may give you some somewhat realistic data to play with but you
+    should really use a different datasource.
+
+    Args:
+        weather: dataframe with columns "ssr", and "SunElevation(deg)"
+
+    Returns:
+        This function modifies the original dataframe but also returns a copy of the modified dataframe.
+    """
+    weather.loc[:, "DirectSun_uncorrected (W/m2)"] = weather["ssr"] / 3600
     weather.loc[:, "correction"] = abs(np.sin(np.deg2rad(weather.loc[:, "SunElevation (deg)"])))
     weather.loc[:, "DirectSun_corrected (W/m2)"] = weather.loc[:, "DirectSun_uncorrected (W/m2)"] / \
                                                    weather.loc[:, "correction"]
     # todo: need to convert to surface normal to sun.
     weather.loc[:, "DiffuseSun (W/m2)"] = 0
+    return weather.copy()
 
 
 def cumulative_ssr_to_hourly(cumulative_ssr: np.ndarray) -> np.ndarray:
