@@ -4,6 +4,7 @@ Test Strategy:
 - Minimal testing on xarray and reading of grib file as they were tested externally.
 - TODO: Test for ssr_to_direct_and_diffuse to be added when function is finalised.
 """
+import itertools
 import pandas as pd
 import pytest
 import numpy as np
@@ -13,7 +14,6 @@ from unittest.mock import MagicMock
 import datetime
 import pytz
 import xarray
-
 
 
 def test_cumulative_ssr_to_hourly_one_day():
@@ -93,3 +93,21 @@ def test_from_era5(mock_extract_df, tmp_path, grib_df, road_file, monkeypatch):
     END_DATE = datetime.datetime(2020, 9, 13, 9, 0, tzinfo=TZ)
     readgrib.from_era5(STATION_FILE, GRIB_FILE, START_DATE, END_DATE, outfile=tmp_path / r'Weather-era5byS5-tmp.dat',
                        Solar=True)
+
+
+def test_from_era5_backfill(grib_df, monkeypatch, road_file, tmp_path, capsys):
+    empty_spot = grib_df.copy()
+    empty_spot.loc[:, ['ssr', 'v10', 'u10', 't2m']] = np.nan
+    monkeypatch.setattr(readgrib, "extract_df", MagicMock(side_effect=itertools.cycle([empty_spot, grib_df])))
+    STATION_FILE = road_file
+    GRIB_FILE = 'mock'
+    monkeypatch.setattr(xarray, 'open_dataset', MagicMock(return_value=xarray.Dataset.from_dataframe(grib_df)))
+    TZ = pytz.timezone('UTC')
+    START_DATE = datetime.datetime(2020, 9, 13, 2, 0, tzinfo=TZ)
+    END_DATE = datetime.datetime(2020, 9, 13, 9, 0, tzinfo=TZ)
+    with pytest.warns(UserWarning,
+                      match=r"Spot weather at row \d, location [\d\-,\.\s]+ received NaN from Grib file."):
+        readgrib.from_era5(STATION_FILE, GRIB_FILE, START_DATE, END_DATE,
+                           outfile=tmp_path / r'Weather-era5byS5-tmp.dat', Solar=True)
+    out = capsys.readouterr().out
+    assert 'Data missing for starting point, backfilling from first point in space.' in out

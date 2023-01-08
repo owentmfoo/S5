@@ -45,7 +45,7 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
         A pandas dataframe with the weather data.
 
     Raises:
-        IndexError: When the start or end date are outside of the
+        IndexError: When the start or end date are outside of the available data in the grib file
     """
     if start_date.tzinfo is None:
         print('TimeZone info not specified, using "Australia/Darwin"')
@@ -127,7 +127,7 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
     return weather
 
 
-def _calculate_wind(df):
+def _calculate_wind(df: pd.DataFrame) -> pd.DataFrame:
     """ Private function to convert the 10m u v component of wind to direction and velocity
 
     According to era5 documentation, u10 is towards the east, v10 is towards the north, both in m/s at 10m.
@@ -257,7 +257,7 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
         print('Data missing for starting point, backfilling from first point in space.')
         Start = WeatherTP.data[WeatherTP.data['Distance (km)'] == WeatherTP.data['Distance (km)'].min()]
         Start.loc[:, 'Distance (km)'] = 0
-        WeatherTP.data = pd.DataFrame.append(Start, WeatherTP.data)
+        WeatherTP.data = pd.concat([Start, WeatherTP.data], axis='index')
 
     WeatherTP.data.sort_values(by=['Distance (km)', 'DateTime'], inplace=True)
     WeatherTP.add_day_time_cols()
