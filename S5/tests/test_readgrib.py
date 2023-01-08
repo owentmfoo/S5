@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 import numpy as np
 from S5.Weather import readgrib
+import S5.Tecplot as TP
 from io import StringIO
 from unittest.mock import MagicMock
 import datetime
@@ -111,3 +112,16 @@ def test_from_era5_backfill(grib_df, monkeypatch, road_file, tmp_path, capsys):
                            outfile=tmp_path / r'Weather-era5byS5-tmp.dat', Solar=True)
     out = capsys.readouterr().out
     assert 'Data missing for starting point, backfilling from first point in space.' in out
+
+
+def test_from_era5_no_solar(mock_extract_df, tmp_path, grib_df, road_file, monkeypatch):
+    STATION_FILE = road_file
+    GRIB_FILE = 'mock'
+    monkeypatch.setattr(xarray, 'open_dataset', MagicMock(return_value=xarray.Dataset.from_dataframe(grib_df)))
+    TZ = pytz.timezone('UTC')
+    START_DATE = datetime.datetime(2020, 9, 13, 2, 0, tzinfo=TZ)
+    END_DATE = datetime.datetime(2020, 9, 13, 9, 0, tzinfo=TZ)
+    readgrib.from_era5(STATION_FILE, GRIB_FILE, START_DATE, END_DATE, outfile=tmp_path / r'Weather-era5byS5-tmp.dat',
+                       Solar=False)
+    tp = TP.SSWeather(tmp_path / r'Weather-era5byS5-tmp.dat')
+    assert (tp.data[["DirectSun (W/m2)", "DiffuseSun (W/m2)"]] == 0).all().all()

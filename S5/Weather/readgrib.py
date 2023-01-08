@@ -179,10 +179,10 @@ def ssr_to_direct_and_diffuse(weather: pd.DataFrame) -> pd.DataFrame:
         This function modifies the original dataframe but also returns a copy of the modified dataframe.
     """
     weather.loc[:, "DirectSun_uncorrected (W/m2)"] = weather["ssr"] / 3600
-    weather.loc[:, "correction"] = abs(np.sin(np.deg2rad(weather.loc[:, "SunElevation (deg)"])))
-    weather.loc[:, "DirectSun_corrected (W/m2)"] = weather.loc[:, "DirectSun_uncorrected (W/m2)"] / \
-                                                   weather.loc[:, "correction"]
-    # todo: need to convert to surface normal to sun.
+    # weather.loc[:, "correction"] = abs(np.sin(np.deg2rad(weather.loc[:, "SunElevation (deg)"])))
+    # weather.loc[:, "DirectSun_corrected (W/m2)"] = weather.loc[:, "DirectSun_uncorrected (W/m2)"] / \
+    #                                      weather.loc[:, "correction"]
+    weather.loc[:, "DirectSun (W/m2)"] = weather.loc[:, "DirectSun_uncorrected (W/m2)"]
     weather.loc[:, "DiffuseSun (W/m2)"] = 0
     return weather.copy()
 
@@ -250,7 +250,7 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
     ds.close()
 
     if not Solar:
-        print('disabeling solar output')
+        print('Disabling solar output.')
         WeatherTP.data.loc[:, ["DirectSun (W/m2)", "DiffuseSun (W/m2)"]] = 0
 
     if WeatherTP.data['Distance (km)'].min() != 0:
@@ -269,7 +269,6 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
 
     # TODO: use __debug__ instad?
     if not debug:
-        WeatherTP.data.rename(columns={"DirectSun_uncorrected (W/m2)": "DirectSun (W/m2)"}, inplace=True)
         WeatherTP.data = WeatherTP.data.loc[:,
                          ["Day", "Time (HHMM)", "Distance (km)", "DirectSun (W/m2)", "DiffuseSun (W/m2)",
                           "SunAzimuth (deg)",
