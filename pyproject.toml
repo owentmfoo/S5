@@ -33,6 +33,11 @@ test = [
     "pytest",
     "pytest-cov",
 ]
+grib = [
+    "xarray",
+    "cfgrib",
+    "eccodes",
+]
 
 [tool.pytest.ini_options]
  	addopts = [

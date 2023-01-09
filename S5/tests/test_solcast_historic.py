@@ -28,23 +28,6 @@ def solcast_hist_csv(tmp_path_factory):
     return filepath
 
 
-@pytest.fixture(scope="session")
-def road_file(tmp_path_factory):
-    """Returns a typical solcast historic csv."""
-    filepath = tmp_path_factory.mktemp("data") / "Road_test.dat"
-    with open(filepath, 'w') as file:
-        file.write(
-            """Title = "Stuart Highway - Altitudes, Headings, Latitude, and Longitude from Google Maps, Speed Limits from WSC2017 Route Notes"
-Variables = "Distance (km)", "Altitude (m)", "Heading (deg)", "SpeedLimit (km/h)", "Latitude", "Longitude"
-Zone T = "Stuart Highway", I=5, J=1, K=1, F=POINT
-       0.000         24.7        318.7         50.0        -12.46597        130.84273
-       30.25         25.0         17.3         50.0        -16.46571        131.54249
-       70.16         24.8         61.4         50.0        -18.46555        128.08255
-       100.53        24.8         43.3         50.0        -25.46545        122.45274
-       250.6         25.0         44.3         50.0        -53.46534        127.84284""")
-    return filepath
-
-
 def test_read_solcast_csv(solcast_hist_csv):
     distance = 6969
     tz = pytz.timezone('UTC')
@@ -143,6 +126,7 @@ def test_main(road_file, monkeypatch, tmpdir, mock_read_solcast_csv):
     assert WeatherTP.data['Distance (km)'].nunique() == 5
     WeatherTP.add_timestamp(startday='20191013')
     assert WeatherTP.data['DateTime'].nunique() == 6
+
 
 @pytest.mark.filterwarnings("ignore:In a future version.*")
 def test_main_mismatch_timezone(road_file, monkeypatch, tmpdir, mock_read_solcast_csv):
