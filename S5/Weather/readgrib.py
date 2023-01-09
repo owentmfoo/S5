@@ -1,7 +1,6 @@
 """
-TODO: doctrings
-TODO: type hints
-TODO: tests
+Create SolarSim weather file from era5-land grib files.
+
 The core functionality of reading era5 grib files are here, but do note that this is not tested extensively.
 Solar irradiance were not in direct and diffuse radiation, so until there is a good way to convert them to direct and
 diffuse irradiance it might only be useful for generating EV weather files where solar irradiance data is not needed.
@@ -13,7 +12,6 @@ import os
 import warnings
 import datetime
 from typing import Union
-
 import xarray as xr
 import pandas as pd
 import numpy as np

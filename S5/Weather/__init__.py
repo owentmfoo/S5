@@ -1,4 +1,7 @@
-"""Scripts and functions to are used to generate weather files.
+"""
+Scripts and functions to are used to generate weather files.
+TODO: reorganise this subpackage
+TODO: code to convert Australia Bureau of Meteorology 1 min solar data to weather file
 """
 import pandas as pd
 import numpy as np
