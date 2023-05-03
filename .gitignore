@@ -143,3 +143,4 @@ ipython_config.py
 # Things specific to this project #
 ###################################
 config.py
+/scratch/
