@@ -76,7 +76,7 @@ def to_s3(name: str, content: bytes, bucket_name: str = "solcastresults") -> Non
     s3 = boto3.resource("s3")
     timestamp = datetime.datetime.now()
     timestamp = timestamp.strftime("%Y%m%d%H%M")
-    FileName = f"Forecast{timestamp}{name}"
+    FileName = f"Forecast{timestamp}{name}.csv"
     s3.Bucket(bucket_name).put_object(Key=FileName, Body=content)
 
 
@@ -104,7 +104,34 @@ def forecast_to_csv(
     if name is None:
         name = f"lat{latitude}lon{longitude}"
     response = send_request(latitude, longitude, api_key, name)
-    to_csv(name, response, dest_dir)
+    if response:
+        to_csv(name, response, dest_dir)
+
+
+def forecast_to_s3(
+        latitude: float,
+        longitude: float,
+        api_key: str,
+        name: Union[str, os.PathLike] = None,
+        bucket_name: str = "solcastresults",
+) -> None:
+    """Obtains a forecast from solcast and save to the S3 bucket.
+
+    Args:
+        latitude: latitude of the spot to get the forecast.
+        longitude: longitude  of the spot to get the forecast.
+        api_key: Solcast api key
+        name: Name of the location for the forecast.
+        bucket_name: Name of the S3 bucket
+
+    Returns:
+        Forecast will be save to S3.
+    """
+    if name is None:
+        name = f"lat{latitude}lon{longitude}"
+    response = send_request(latitude, longitude, api_key, name)
+    if response:
+        to_s3(name, response, bucket_name)
 
 
 if __name__ == "__main__":
@@ -113,7 +140,9 @@ if __name__ == "__main__":
     from config import solcast_api_key
 
     # solcast_api_key = ''
-    send_request(51.178882, -1.826215, solcast_api_key, "Stonehenge.csv")
+    forecast_to_csv(51.178882, -1.826215, solcast_api_key, "Stonehenge")
+    forecast_to_csv(41.89021, 12.492231, solcast_api_key, "The Colosseum")
+
     # send_request(-12.4239, 130.8925, solcast_api_key, "Darwin_Airport.csv")
     # send_request(-19.64, 134.18, solcast_api_key, "Tennant_Creek_Airport.csv")
     # send_request(-23.7951, 133.8890, solcast_api_key, "Alice_Springs_Airport.csv")
