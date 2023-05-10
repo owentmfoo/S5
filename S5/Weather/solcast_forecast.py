@@ -1,15 +1,15 @@
+import json
 import logging
-from typing import Union
 import os
-import sys
-import datetime
+
+import numpy as np
+import pandas as pd
 import requests
-import boto3
 
 
 def send_request(
         latitude: float, longitude: float, api_key: str, name: str = "unknown"
-) -> bytes:
+) -> pd.DataFrame:
     """Obtain the forecast from Solcast
 
     Args:
@@ -19,134 +19,63 @@ def send_request(
         name: Name of the location for the forecast.
 
     Returns:
-        Forecast in bytes as a csv.
+        Forecast as a dataframe.
     """
     parameters = {
         "api_key": api_key,
         "latitude": latitude,
         "longitude": longitude,
         "hours": 168,
-        "format": "csv",
+        "format": "json",
     }
-    logging.debug(f"Sending request for lat-{latitude} lon-{longitude}")
+    logging.debug(f"Sending request for lat:{latitude} lon:{longitude}")
     response = requests.get(
         "https://api.solcast.com.au/world_radiation/forecasts", params=parameters
     )
     logging.debug(f"{name} {response.status_code}")
     if response.status_code == 200:
-        return response.content
+        data = json.loads(response.text)
+        df = pd.DataFrame([i for i in data["forecasts"]])
+        df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
+        df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
+        df.set_index("period_end", inplace=True)
+        return df
     logging.error(
         f"Bad response from Solacast API for forecast data.\n"
-        f"\tError {response.status_code}: {response.content.decode('utf8')}"
+        f"\tError {response.status_code}: {response.text}"
     )
-    return b""
-
-
-def to_csv(name: str, content: bytes, dest_dir: Union[os.PathLike, str] = ""):
-    """Save the forecast to a csv.
-
-    Args:
-        name: Name of the location for the forecast.
-        content: Forecast returned.
-        dest_dir: Destination directory either an absolute path or
-        relative to the current working directory.
-        Leave blank to save to current working directory.
-    Returns:
-        Saves the bytes to the csv file.
-    """
-    timestamp = datetime.datetime.now()
-    timestamp = timestamp.strftime("%Y%m%d%H%M")
-    file_name = f"Forecast{timestamp}{name}.csv"
-    full_path = os.path.join(dest_dir, file_name)
-    with open(f"{full_path}", "wb") as f:
-        f.write(content)
-
-
-def to_s3(name: str, content: bytes, bucket_name: str = "solcastresults") -> None:
-    """Save the forecast to AWS S3. To be used on AWS Lambda.
-
-    Args:
-        name: Name of the location for the forecast.
-        content: Forecast returned.
-        bucket_name: Name of the S3 bucket.
-
-    Returns:
-        Saves the forecast to S3.
-    """
-    s3 = boto3.resource("s3")
-    timestamp = datetime.datetime.now()
-    timestamp = timestamp.strftime("%Y%m%d%H%M")
-    FileName = f"Forecast{timestamp}{name}.csv"
-    s3.Bucket(bucket_name).put_object(Key=FileName, Body=content)
-
-
-def forecast_to_csv(
-        latitude: float,
-        longitude: float,
-        api_key: str,
-        name: str = None,
-        dest_dir: str = "",
-) -> None:
-    """Obtains a forecast from solcast and save to csv.
-
-    Args:
-        latitude: latitude of the spot to get the forecast.
-        longitude: longitude  of the spot to get the forecast.
-        api_key: Solcast api key
-        name: Name of the location for the forecast.
-        dest_dir: Destination directory either an absolute path
-        or relative to the current working directory.
-        Leave blank to save to current working directory.
-
-    Returns:
-        Forecast will be save to csv.
-    """
-    if name is None:
-        name = f"lat{latitude}lon{longitude}"
-    response = send_request(latitude, longitude, api_key, name)
-    if response:
-        to_csv(name, response, dest_dir)
-
-
-def forecast_to_s3(
-        latitude: float,
-        longitude: float,
-        api_key: str,
-        name: Union[str, os.PathLike] = None,
-        bucket_name: str = "solcastresults",
-) -> None:
-    """Obtains a forecast from solcast and save to the S3 bucket.
-
-    Args:
-        latitude: latitude of the spot to get the forecast.
-        longitude: longitude  of the spot to get the forecast.
-        api_key: Solcast api key
-        name: Name of the location for the forecast.
-        bucket_name: Name of the S3 bucket
-
-    Returns:
-        Forecast will be save to S3.
-    """
-    if name is None:
-        name = f"lat{latitude}lon{longitude}"
-    response = send_request(latitude, longitude, api_key, name)
-    if response:
-        to_s3(name, response, bucket_name)
+    return pd.DataFrame()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level="DEBUG", stream=sys.stdout)
-    logging.info("test")
+    logging.basicConfig(level="DEBUG")
+    logging.info("lambda function started")
     from config import solcast_api_key
+    from S5.Weather import to_parquet, upload_file
 
-    # solcast_api_key = ''
-    forecast_to_csv(51.178882, -1.826215, solcast_api_key, "Stonehenge")
-    forecast_to_csv(41.89021, 12.492231, solcast_api_key, "The Colosseum")
+    API_KEY = solcast_api_key
 
-    # send_request(-12.4239, 130.8925, solcast_api_key, "Darwin_Airport.csv")
-    # send_request(-19.64, 134.18, solcast_api_key, "Tennant_Creek_Airport.csv")
-    # send_request(-23.7951, 133.8890, solcast_api_key, "Alice_Springs_Airport.csv")
-    # send_request(-29.03, 134.72, solcast_api_key, "Coober_Pedy_Airport.csv")
-    # send_request(-34.9524, 138.5196, solcast_api_key, "Adelaide_Airport.csv")
-    # send_request(-31.1558, 136.8054, solcast_api_key, "Woomera.csv")
-    # send_request(-16.262330910217, 133.37694753742824, solcast_api_key, "Daly_Waters.csv")
+    locations = [
+        [51.178882, -1.826215, "Stonehenge"],
+        [41.89021, 12.492231, "The Colosseum"],
+        [-12.4239, 130.8925, "Darwin_Airport"],
+        [-19.64, 134.18, "Tennant_Creek_Airport"],
+        [-23.7951, 133.8890, "Alice_Springs_Airport"],
+        [-29.03, 134.72, "Coober_Pedy_Airport"],
+        [-34.9524, 138.5196, "Adelaide_Airport"],
+        [-31.1558, 136.8054, "Woomera"],
+        [-16.262330910217, 133.37694753742824, "Daly_Waters"],
+    ]
+
+    os.mkdir("/tmp/Forecasts")
+    for location in locations:
+        df = send_request(location[0], location[1], API_KEY, location[2])
+        to_parquet(location[2], df, r"/tmp/Forecasts")
+
+    forecasts = os.listdir("/tmp/Forecasts")
+    for forecast in forecasts:
+        upload_file(
+            os.path.join("/tmp/Forecasts", forecast),
+            "solcastresults",
+            f"solcast/{forecast}",
+        )
