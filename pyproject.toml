@@ -16,14 +16,14 @@ classifiers = [
 dynamic = ["version", "description",]
 
 dependencies = [
-"pandas>=1.4.1<2",
+"pandas >= 1.4.1, < 2",
 "pvlib",
 "pytz",
-"matplotlib>=3.5.0",
+"matplotlib >= 3.5.0",
 "tqdm",
-"numpy>=1.20.3",
-"pytest>=7.1.1",
-"setuptools>=58.0.4",
+"numpy >= 1.20.3",
+"pytest >= 7.1.1",
+"setuptools >= 58.0.4",
 ]
 
 
