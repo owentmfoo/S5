@@ -1,63 +1,127 @@
-import os.path
+import json
 
-import pytest
-from S5.Weather.solcast_forecast import send_request, to_csv, to_s3
-from unittest.mock import MagicMock
+import pandas as pd
+import requests
+from requests import RequestException
+
+from S5.Weather.solcast_forecast import send_request
+
+# Define mock input parameters
+latitude = 37.7749
+longitude = -122.4194
+api_key = "fake_api_key"
+name = "San Francisco"
+
+# Define mock response JSON
+response_text = {
+    "forecasts": [
+        {
+            "period_end": "2023-05-15T23:00:00.000Z",
+            "period": "PT30M",
+            "ghi": 800,
+            "dni": 700,
+            "dhi": 100,
+        },
+        {
+            "period_end": "2023-05-16T00:00:00.000Z",
+            "period": "PT30M",
+            "ghi": 750,
+            "dni": 650,
+            "dhi": 100,
+        },
+    ]
+}
 
 
-# @pytest.mark.parametrize(
-#     "latitude, longitude, api_key, expected_status_code",
-#     [
-#         (51.178882, -1.826215, "<your-api-key>", 200),
-#         (41.89021, 12.492231, "<your-api-key>", 200),
-#         (27.175145, 78.042142, "<your-api-key>", 200),
-#     ],
-# )
-# def test_send_request(latitude, longitude, api_key, expected_status_code):
-#     response = send_request(latitude, longitude, api_key)
-#     assert response is not None
-#     assert response != b""
-#     assert response.startswith(b"Period End Time")
-#     assert response.count(b"\n") >= 170  # The response should have at least 170 lines
-#     assert response.count(b",") >= 1000  # The response should have at least 1000 commas
-#     assert response.count(b"\r") == 0  # The response should not have any \r characters
-#     assert response.count(b"\n") == response.count(b"\r\n")  # The response should only have \n characters
+# Define mock response object
+class MockResponse:
+
+    def __init__(self, status_code, text):
+        self.status_code = status_code
+        self.text = text
+
+    def json(self):
+        return json.loads(self.text)
 
 
-@pytest.mark.parametrize(
-    "latitude, longitude, api_key, expected_status_code",
-    [
-        (51.178882, -1.826215, "<your-api-key>", 200),
-        (41.89021, 12.492231, "<your-api-key>", 200),
-        (27.175145, 45.042142, "<your-api-key>", 429),
-    ],
-)
-def test_send_request(monkeypatch, latitude, longitude, api_key, expected_status_code):
-    def mock_requests_get(url, params):
-        mock_response = MagicMock()
-        mock_response.status_code = expected_status_code
-        mock_response.content = b""
+# Define test function
+def test_send_request(monkeypatch, caplog):
+    # Define mock response
+    mock_response = MockResponse(status_code=200, text=json.dumps(response_text))
+
+    # Mock the requests.get method
+    def mock_get(*args, **kwargs):
         return mock_response
 
-    monkeypatch.setattr("requests.get", mock_requests_get)
+    monkeypatch.setattr(requests, "get", mock_get)
 
-    # Test that send_request returns bytes when the API call is successful.
-    assert isinstance(send_request(latitude, longitude, api_key), bytes)
+    # Call the send_request function
+    result = send_request(latitude, longitude, api_key, name)
+
+    # Check the result is a pandas DataFrame
+    assert isinstance(result, pd.DataFrame)
+
+    # Check the DataFrame contains the expected columns
+    expected_columns = ["period", "ghi", "dni", "dhi"]
+    assert set(result.columns) == set(expected_columns)
+
+    # Check the DataFrame contains the expected number of rows
+    assert len(result) == len(response_text["forecasts"])
+
+    # Check the DataFrame index is a pandas DatetimeIndex
+    assert isinstance(result.index, pd.DatetimeIndex)
+
+    # Check the DataFrame index is set to the 'period_end' column
+    assert result.index.name == "period_end"
+
+    # Check the DataFrame values match the expected response
+    for i, (index, row) in enumerate(result.iterrows()):
+        expected_row = response_text["forecasts"][i]
+        assert row["period"] == expected_row["period"]
+        assert row["ghi"] == expected_row["ghi"]
+        assert row["dni"] == expected_row["dni"]
+        assert row["dhi"] == expected_row["dhi"]
+
+    # test the response of a rate limit
+    mock_response = MockResponse(status_code=429, text=b'')
+
+    # Mock the requests.get method
+    def mock_get(*args, **kwargs):
+        return mock_response
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    # Call the send_request function
+    result = send_request(latitude, longitude, api_key, name)
+
+    # Check that the DataFrame is empty
+    assert result.empty
+
+    # Check that the warning is logged
+    assert "Bad response from Solacast API for forecast data." in caplog.text
+    assert "429" in caplog.text
 
 
-def test_to_csv(tmpdir):
-    content = b"Period End Time,Period,Period Start Time,Radiation,ghi\n2023-05-08T23:00:00.000Z,1,2023-05-08T22:30:00.000Z,0,0\n2023-05-08T23:30:00.000Z,2,2023-05-08T23:00:00.000Z,0,0\n"
-    name = "test_location"
-    to_csv(name, content, str(tmpdir))
-    file_path = tmpdir.join(os.listdir(tmpdir)[0])
-    # assert file_path.check() is True
-    with open(file_path, "rb") as f:
-        file_content = f.read()
-        assert file_content == content
+def test_send_request_failure(monkeypatch, caplog):
+    # set up mock response with error
+    def mock_get(url, *args, **kwargs):
+        raise RequestException("Network error")
 
+    monkeypatch.setattr("requests.get", mock_get)
 
-@pytest.mark.skip(reason="requires S3 credentials and bucket access")
-def test_to_s3():
-    content = b"Period End Time,Period,Period Start Time,Radiation,ghi\n2023-05-08T23:00:00.000Z,1,2023-05-08T22:30:00.000Z,0,0\n2023-05-08T23:30:00.000Z,2,2023-05-08T23:00:00.000Z,0,0\n"
-    to_s3("test_location", content, "my-bucket-name")
-    # TODO: Check that the file was successfully uploaded to S3
+    # call the function
+    latitude, longitude, api_key, name = (
+        37.7749,
+        -122.4194,
+        "your_api_key",
+        "San Francisco",
+    )
+    result = send_request(latitude, longitude, api_key, name)
+
+    # check that the function returns an empty DataFrame
+    assert isinstance(result, pd.DataFrame)
+    assert result.empty
+
+    # check that an error was captured in the log
+    assert "ERROR" in caplog.text
+    assert "Network error" in caplog.text

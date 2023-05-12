@@ -26,9 +26,13 @@ def send_request(
     url = f"https://api.tomorrow.io/v4/weather/forecast?location={latitude},{longitude}&apikey={api_key}"
 
     # Send the API request
-    logging.debug(f"Sending request for lat:{latitude} lon:{longitude}")
-    response = requests.get(url)
-    logging.debug(f"{name} {response.status_code}")
+    logging.debug(f"Sending request to tomorrow.io for lat:{latitude} lon:{longitude}")
+    try:
+        response = requests.get(url)
+    except requests.RequestException as e:
+        logging.error(e)
+        return pd.DataFrame()
+    logging.debug(f"tomorrow.io response for {name}: {response.status_code}")
 
     # Parse the response JSON
     if response.status_code != 200:
@@ -61,16 +65,15 @@ def send_request(
 
     df = pd.concat([minutely, hourly, daily])
 
-    df.loc[:, ["moonriseTime", "moonsetTime", "sunriseTime", "sunsetTime"]] = df.loc[
-                                                                              :, ["moonriseTime", "moonsetTime",
-                                                                                  "sunriseTime", "sunsetTime"]
-                                                                              ].astype(np.datetime64)
+    for time_variable in ["moonriseTime", "moonsetTime", "sunriseTime", "sunsetTime"]:
+        if time_variable in df.columns:
+            df.loc[:, time_variable] = df.loc[:, time_variable].astype(np.datetime64)
     df.index = pd.DatetimeIndex(df.index)
     return df
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level="DEBUG")
+if __name__ == "__main__":  # pragma: no cover
+    logging.getLogger().setLevel(logging.DEBUG)
     logging.info("lambda function started")
     from S5.Weather import to_parquet, upload_file
     from config import tomorrow_api_key

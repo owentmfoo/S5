@@ -28,14 +28,19 @@ def send_request(
         "hours": 168,
         "format": "json",
     }
-    logging.debug(f"Sending request for lat:{latitude} lon:{longitude}")
-    response = requests.get(
-        "https://api.solcast.com.au/world_radiation/forecasts", params=parameters
-    )
-    logging.debug(f"{name} {response.status_code}")
+    logging.debug(f"Sending request to solcast for lat:{latitude} lon:{longitude}")
+    try:
+        response = requests.get(
+            "https://api.solcast.com.au/world_radiation/forecasts", params=parameters
+        )
+    except requests.RequestException as e:
+        logging.error(e)
+        return pd.DataFrame()
+    logging.debug(f"Solcast response for {name}: {response.status_code}")
+
     if response.status_code == 200:
         data = json.loads(response.text)
-        df = pd.DataFrame([i for i in data["forecasts"]])
+        df = pd.DataFrame(data['forecasts'])
         df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
         df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
         df.set_index("period_end", inplace=True)
@@ -47,8 +52,8 @@ def send_request(
     return pd.DataFrame()
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level="DEBUG")
+if __name__ == "__main__":  # pragma: no cover
+    logging.getLogger().setLevel(logging.DEBUG)
     logging.info("lambda function started")
     from config import solcast_api_key
     from S5.Weather import to_parquet, upload_file
