@@ -62,12 +62,25 @@ def test_send_request_success(monkeypatch, mock_tomorrow_response, caplog):
     assert not result.empty
 
     # check that the returned DataFrame has the expected columns and index
-    expected_columns = ["temperature", "humidity", "temperatureMax", "temperatureMin"]
+    expected_columns = [
+        "temperature",
+        "humidity",
+        "temperatureMax",
+        "temperatureMin",
+        "latitude",
+        "longitude",
+        "location_name",
+        "prediction_date",
+        "period_end",
+    ]
     expected_index = pd.DatetimeIndex(
         ["2023-05-13T23:05:00Z", "2023-05-13T23:00:00Z", "2023-05-13T00:00:00Z"]
     )
-    assert result.columns.tolist() == expected_columns
-    assert result.index.tolist() == expected_index.tolist()
+    assert set(result.columns.to_list()) == set(expected_columns)
+    assert result.period_end.to_list() == expected_index.to_list()
+    assert (result.latitude == latitude).min()
+    assert (result.longitude == longitude).min()
+    assert (result.location_name == name).min()
 
 
 def test_send_request_failure(monkeypatch, caplog):

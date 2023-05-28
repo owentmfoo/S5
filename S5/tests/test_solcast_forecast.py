@@ -62,17 +62,21 @@ def test_send_request(monkeypatch, caplog):
     assert isinstance(result, pd.DataFrame)
 
     # Check the DataFrame contains the expected columns
-    expected_columns = ["period", "ghi", "dni", "dhi"]
+    expected_columns = [
+        "period",
+        "ghi",
+        "dni",
+        "dhi",
+        "period_end",
+        "latitude",
+        "longitude",
+        "location_name",
+        "prediction_date",
+    ]
     assert set(result.columns) == set(expected_columns)
 
     # Check the DataFrame contains the expected number of rows
     assert len(result) == len(response_text["forecasts"])
-
-    # Check the DataFrame index is a pandas DatetimeIndex
-    assert isinstance(result.index, pd.DatetimeIndex)
-
-    # Check the DataFrame index is set to the 'period_end' column
-    assert result.index.name == "period_end"
 
     # Check the DataFrame values match the expected response
     for i, (index, row) in enumerate(result.iterrows()):
@@ -81,9 +85,12 @@ def test_send_request(monkeypatch, caplog):
         assert row["ghi"] == expected_row["ghi"]
         assert row["dni"] == expected_row["dni"]
         assert row["dhi"] == expected_row["dhi"]
+    assert (result.latitude == latitude).min()
+    assert (result.longitude == longitude).min()
+    assert (result.location_name == name).min()
 
     # test the response of a rate limit
-    mock_response = MockResponse(status_code=429, text=b'')
+    mock_response = MockResponse(status_code=429, text=b"")
 
     # Mock the requests.get method
     def mock_get(*args, **kwargs):
@@ -109,13 +116,6 @@ def test_send_request_failure(monkeypatch, caplog):
 
     monkeypatch.setattr("requests.get", mock_get)
 
-    # call the function
-    latitude, longitude, api_key, name = (
-        37.7749,
-        -122.4194,
-        "your_api_key",
-        "San Francisco",
-    )
     result = send_request(latitude, longitude, api_key, name)
 
     # check that the function returns an empty DataFrame
