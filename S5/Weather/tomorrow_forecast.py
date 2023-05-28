@@ -1,7 +1,8 @@
+import datetime
 import json
 import logging
-import os
 
+import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
@@ -24,6 +25,7 @@ def send_request(
     """
     # Build the API request URL
     url = f"https://api.tomorrow.io/v4/weather/forecast?location={latitude},{longitude}&apikey={api_key}"
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
 
     # Send the API request
     logging.debug(f"Sending request to tomorrow.io for lat:{latitude} lon:{longitude}")
@@ -68,14 +70,18 @@ def send_request(
     for time_variable in ["moonriseTime", "moonsetTime", "sunriseTime", "sunsetTime"]:
         if time_variable in df.columns:
             df.loc[:, time_variable] = df.loc[:, time_variable].astype(np.datetime64)
+    df["latitude"] = latitude
+    df["longitude"] = longitude
+    df["location_name"] = name
+    df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
     df.index = pd.DatetimeIndex(df.index)
+    df = df.reset_index(names="period_end")
     return df
 
 
 if __name__ == "__main__":  # pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
     logging.info("lambda function started")
-    from S5.Weather import to_parquet, upload_file
     from config import tomorrow_api_key
 
     API_KEY = tomorrow_api_key
@@ -92,15 +98,17 @@ if __name__ == "__main__":  # pragma: no cover
         [-16.262330910217, 133.37694753742824, "Daly_Waters"],
     ]
 
-    os.mkdir("/tmp/Forecasts")
     for location in locations:
-        df = send_request(location[0], location[1], API_KEY, location[2])
-        to_parquet(location[2], df, r"/tmp/Forecasts")
+        loc_df = send_request(location[0], location[1], API_KEY, location[2])
+        try:
+            df = pd.concat([df, loc_df], axis=0)
+        except NameError:
+            df = loc_df
 
-    forecasts = os.listdir("/tmp/Forecasts")
-    for forecast in forecasts:
-        upload_file(
-            os.path.join("/tmp/Forecasts", forecast),
-            "solcastresults",
-            f"tomorrow/{forecast}",
-        )
+    wr.s3.to_parquet(
+        df=df,
+        path=f"s3://solcastresults/tomorrow/",
+        dataset=True,
+        mode="append",
+        filename_prefix="tomorrow_",
+    )

@@ -1,7 +1,8 @@
+import datetime
 import json
 import logging
-import os
 
+import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
@@ -28,6 +29,7 @@ def send_request(
         "hours": 168,
         "format": "json",
     }
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
     logging.debug(f"Sending request to solcast for lat:{latitude} lon:{longitude}")
     try:
         response = requests.get(
@@ -40,10 +42,13 @@ def send_request(
 
     if response.status_code == 200:
         data = json.loads(response.text)
-        df = pd.DataFrame(data['forecasts'])
+        df = pd.DataFrame(data["forecasts"])
         df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
         df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
-        df.set_index("period_end", inplace=True)
+        df["latitude"] = latitude
+        df["longitude"] = longitude
+        df["location_name"] = name
+        df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
         return df
     logging.error(
         f"Bad response from Solacast API for forecast data.\n"
@@ -53,10 +58,9 @@ def send_request(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
     logging.info("lambda function started")
     from config import solcast_api_key
-    from S5.Weather import to_parquet, upload_file
 
     API_KEY = solcast_api_key
 
@@ -72,15 +76,17 @@ if __name__ == "__main__":  # pragma: no cover
         [-16.262330910217, 133.37694753742824, "Daly_Waters"],
     ]
 
-    os.mkdir("/tmp/Forecasts")
     for location in locations:
-        df = send_request(location[0], location[1], API_KEY, location[2])
-        to_parquet(location[2], df, r"/tmp/Forecasts")
+        loc_df = send_request(location[0], location[1], API_KEY, location[2])
+        try:
+            df = pd.concat([df, loc_df], axis=0)
+        except NameError:
+            df = loc_df
 
-    forecasts = os.listdir("/tmp/Forecasts")
-    for forecast in forecasts:
-        upload_file(
-            os.path.join("/tmp/Forecasts", forecast),
-            "solcastresults",
-            f"solcast/{forecast}",
-        )
+    wr.s3.to_parquet(
+        df=df,
+        path=f"s3://solcastresults/solcast/",
+        dataset=True,
+        mode="append",
+        filename_prefix="solcast_",
+    )
