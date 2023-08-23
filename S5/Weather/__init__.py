@@ -37,7 +37,7 @@ def convert_wind(input_wind_vel: pd.Series, wind_level=10) -> pd.Series:
 
 
 def upload_file(
-        file_name, bucket_name: str = "solcastresults", object_name=None
+        file_name, bucket_name: str = "duscweather", object_name=None
 ) -> bool:  # pragma: no cover - code lifted directly from the s3 examples
     """Upload a file to an S3 bucket
 
