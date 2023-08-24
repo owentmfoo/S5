@@ -85,7 +85,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     wr.s3.to_parquet(
         df=df,
-        path=f"s3://solcastresults/solcast/",
+        path=f"s3://duscweather/solcast/",
         dataset=True,
         mode="append",
         filename_prefix="solcast_",
