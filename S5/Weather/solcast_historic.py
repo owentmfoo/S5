@@ -12,8 +12,10 @@ Typical usage example:
     ROAD_FILE = r'Road-SolCast-10km.dat'
     CSV_LOC = '.'
     tz = pytz.timezone('Australia/Darwin')
-    START_DATE = datetime.datetime(2019, 10, 13, 0, 0, tzinfo=tz)
-    END_DATE = datetime.datetime(2019, 10, 20, 23, 0, tzinfo=tz)
+    START_DATE = datetime.datetime(2019, 10, 13, 0, 0)
+    END_DATE = datetime.datetime(2019, 10, 20, 23, 0)
+    START_DATE = tz.localize(START_DATE)
+    END_DATE = tz.localize(END_DATE)
     main(START_DATE, END_DATE, ROAD_FILE, CSV_LOC)
 """
 import datetime
