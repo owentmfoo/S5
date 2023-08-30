@@ -51,7 +51,8 @@ def send_request(
         df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
         return df
     logging.error(
-        f"Bad response from Solacast API for forecast data.\n"
+        f"Bad response from Solacast API for forecast data at {latitude}, "
+        f"{longitude} with key= {api_key}.\n"
         f"\tError {response.status_code}: {response.text}"
     )
     return pd.DataFrame()
