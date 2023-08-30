@@ -39,7 +39,8 @@ def send_request(
     # Parse the response JSON
     if response.status_code != 200:
         logging.error(
-            f"Bad response from tomorrow.io API for forecast data.\n"
+            f"Bad response from tomorrow.io API for forecast data at {latitude}, "
+            f"{longitude} with key= {api_key}.\n"
             f"\tError {response.status_code}: {response.text}"
         )
         return pd.DataFrame()
