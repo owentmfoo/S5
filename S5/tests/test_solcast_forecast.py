@@ -105,7 +105,10 @@ def test_send_request(monkeypatch, caplog):
     assert result.empty
 
     # Check that the warning is logged
-    assert "Bad response from Solacast API for forecast data." in caplog.text
+    assert "Bad response from Solacast API for forecast data at" in caplog.text
+    assert api_key in caplog.text
+    assert str(latitude) in caplog.text
+    assert str(longitude) in caplog.text
     assert "429" in caplog.text
 
 
