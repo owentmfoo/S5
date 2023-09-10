@@ -2,12 +2,13 @@ import datetime
 import json
 import logging
 import os
+import time
 
 import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
-from solcast import live
+from solcast import live, forecast
 
 logger = logging.getLogger(__name__)
 null_handler = logging.NullHandler()
@@ -91,39 +92,58 @@ def send_live_request(
     """
     os.environ["SOLCAST_API_KEY"] = api_key
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
-    logging.debug(
-        f"Sending request to solcast for lat:{latitude} lon:{longitude}")
-    res = live.radiation_and_weather(
-        latitude=latitude,
-        longitude=longitude,
-        output_parameters=["dni",
-                           "dhi",
-                           "temperature",
-                           "surface_pressure",
-                           "wind_speed_10m",
-                           "windDirection",
-                           "azimuth", "zenith"],
-        period='PT5M',
-        hours=168
-    )
-
-    logging.debug(f"Solcast live response for {name}: {res.code}")
-
-    if res.code == 200:
-        df = res.to_pandas()
-        df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
-        df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
-        df["latitude"] = latitude
-        df["longitude"] = longitude
-        df["location_name"] = name
-        df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
-        return df
-    logging.error(
-        f"Bad response from Solacast API for live data at {latitude}, "
-        f"{longitude} with key= {api_key}.\n"
-        f"\tError {res.code}: {res.exception}"
-    )
-    return pd.DataFrame()
+    period = "PT5M"
+    retries = 3
+    for i in range(retries):
+        res = live.radiation_and_weather(
+            latitude=latitude,
+            longitude=longitude,
+            output_parameters=[
+                "dni",
+                "dhi",
+                "air_temp",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "azimuth",
+                "zenith",
+            ],
+            period=period,
+            hours=168,
+        )
+        if res.code == 200:
+            logging.debug("successful request for %s", name)
+            loc_df = res.to_pandas()
+            loc_df = loc_df.rename(
+                columns={
+                    "surface_pressure": "pressureSurfaceLevel",
+                    "wind_speed_10m": "windSpeed",
+                    "wind_direction_10m": "windDirection",
+                }
+            )
+            loc_df.reset_index(inplace=True)
+            loc_df.loc[:, "period"] = period
+            loc_df.loc[:, "period"] = loc_df.loc[:, "period"].astype(
+                pd.CategoricalDtype()
+            )
+            loc_df["latitude"] = latitude
+            loc_df["longitude"] = longitude
+            loc_df["location_name"] = name
+            loc_df["prediction_date"] = np.datetime64(
+                pd.Timestamp(timestamp))
+            return loc_df
+        elif res.code == 429:
+            logging.info(
+                "rate limited for request %s, %d retry remaining, "
+                "retrying in %d seconds",
+                name,
+                retries - i,
+                int(res.exception[-10:-8]) + 1,
+            )
+            time.sleep(int(res.exception[-10:-8]) + 1)
+    logging.error("Unable to get forecast for %s, error %s",
+                  name,
+                  res.exception)
 
 
 def send_forecast_request(
@@ -142,39 +162,61 @@ def send_forecast_request(
     """
     os.environ["SOLCAST_API_KEY"] = api_key
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
-    logging.debug(
-        f"Sending forecast request to solcast for lat:{latitude} lon:{longitude}")
-    res = live.radiation_and_weather(
-        latitude=latitude,
-        longitude=longitude,
-        output_parameters=["dni", "dni10", "dni90",
-                           "dhi", "dhi10", "dhi90",
-                           "temperature",
-                           "surface_pressure",
-                           "wind_speed_10m",
-                           "windDirection",
-                           "azimuth", "zenith"],
-        period='PT5M',
-        hours=336
-    )
-
-    logging.debug(f"Solcast response for {name}: {res.code}")
-
-    if res.code == 200:
-        df = res.to_pandas()
-        df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
-        df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
-        df["latitude"] = latitude
-        df["longitude"] = longitude
-        df["location_name"] = name
-        df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
-        return df
-    logging.error(
-        f"Bad response from Solacast API for forecast data at {latitude}, "
-        f"{longitude} with key= {api_key}.\n"
-        f"\tError {res.code}: {res.exception}"
-    )
-    return pd.DataFrame()
+    period = "PT5M"
+    retries = 3
+    for i in range(retries):
+        res = forecast.radiation_and_weather(
+            latitude=latitude,
+            longitude=longitude,
+            output_parameters=[
+                "dni",
+                "dni10",
+                "dni90",
+                "dhi",
+                "dhi10",
+                "dhi90",
+                "air_temp",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "azimuth",
+                "zenith",
+            ],
+            period=period,
+            hours=336,
+        )
+        if res.code == 200:
+            logging.debug("successful request for %s", name)
+            loc_df = res.to_pandas()
+            loc_df = loc_df.rename(
+                columns={
+                    "surface_pressure": "pressureSurfaceLevel",
+                    "wind_speed_10m": "windSpeed",
+                    "wind_direction_10m": "windDirection",
+                }
+            )
+            loc_df.reset_index(inplace=True)
+            loc_df.loc[:, "period"] = period
+            loc_df.loc[:, "period"] = loc_df.loc[:, "period"].astype(
+                pd.CategoricalDtype()
+            )
+            loc_df["latitude"] = latitude
+            loc_df["longitude"] = longitude
+            loc_df["location_name"] = name
+            loc_df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
+            return loc_df
+        elif res.code == 429:
+            logging.info(
+                "rate limited for request %s, %d retry remaining, "
+                "retrying in %d seconds",
+                name,
+                retries - i,
+                int(res.exception[-10:-8]) + 1,
+            )
+            time.sleep(int(res.exception[-10:-8]) + 1)
+    logging.error("Unable to get forecast for %s, error %s",
+                  name,
+                  res.exception)
 
 
 if __name__ == "__main__":  # pragma: no cover
