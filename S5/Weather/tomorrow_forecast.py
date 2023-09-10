@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 import requests
 
+logger = logging.getLogger(__name__)
+null_handler = logging.NullHandler()
+logger.addHandler(null_handler)
+
 
 def send_request(
         latitude: float, longitude: float, api_key: str, name: str = "unknown"
@@ -24,24 +28,34 @@ def send_request(
 
     """
     # Build the API request URL
-    url = f"https://api.tomorrow.io/v4/weather/forecast?location={latitude},{longitude}&apikey={api_key}"
+    url = f"https://api.tomorrow.io/v4/weather/forecast?location={latitude},{longitude}&apikey={api_key}"  # pylint: disable=line-too-long
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
 
     # Send the API request
-    logging.debug(f"Sending request to tomorrow.io for lat:{latitude} lon:{longitude}")
+    logger.debug(
+        "Sending request to tomorrow.io for lat: %f lon: %f with key: %s",
+        latitude,
+        longitude,
+        api_key,
+    )
     try:
         response = requests.get(url)
     except requests.RequestException as e:
-        logging.error(e)
+        logger.error(e)
         return pd.DataFrame()
-    logging.debug(f"tomorrow.io response for {name}: {response.status_code}")
+    logger.debug("tomorrow.io response for %s: %d", name, response.status_code)
 
     # Parse the response JSON
     if response.status_code != 200:
-        logging.error(
-            f"Bad response from tomorrow.io API for forecast data at {latitude}, "
-            f"{longitude} with key= {api_key}.\n"
-            f"\tError {response.status_code}: {response.text}"
+        logger.error(
+            "Bad response from tomorrow.io API for forecast data at %f, "
+            "%d with key= %s.\n"
+            "\tError %s: %s",
+            latitude,
+            longitude,
+            api_key,
+            response.status_code,
+            response.text,
         )
         return pd.DataFrame()
 
@@ -68,9 +82,16 @@ def send_request(
 
     df = pd.concat([minutely, hourly, daily])
 
-    for time_variable in ["moonriseTime", "moonsetTime", "sunriseTime", "sunsetTime"]:
+    for time_variable in [
+        "moonriseTime",
+        "moonsetTime",
+        "sunriseTime",
+        "sunsetTime",
+    ]:
         if time_variable in df.columns:
-            df.loc[:, time_variable] = df.loc[:, time_variable].astype(np.datetime64)
+            df.loc[:, time_variable] = df.loc[:, time_variable].astype(
+                np.datetime64
+            )
     df["latitude"] = latitude
     df["longitude"] = longitude
     df["location_name"] = name
@@ -108,7 +129,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     wr.s3.to_parquet(
         df=df,
-        path=f"s3://duscweather/tomorrow/",
+        path="s3://duscweather/tomorrow/",
         dataset=True,
         mode="append",
         filename_prefix="tomorrow_",
