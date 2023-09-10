@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 import requests
 
+logger = logging.getLogger(__name__)
+null_handler = logging.NullHandler()
+logger.addHandler(null_handler)
+
 
 def send_request(
         latitude: float, longitude: float, api_key: str, name: str = "unknown"
@@ -30,15 +34,21 @@ def send_request(
         "format": "json",
     }
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
-    logging.debug(f"Sending request to solcast for lat:{latitude} lon:{longitude}")
+    logger.debug(
+        "Sending request to solcast for lat: %f lon: %f with key: %s",
+        latitude,
+        longitude,
+        api_key,
+    )
     try:
         response = requests.get(
-            "https://api.solcast.com.au/world_radiation/forecasts", params=parameters
+            "https://api.solcast.com.au/world_radiation/forecasts",
+            params=parameters,
         )
     except requests.RequestException as e:
-        logging.error(e)
+        logger.error(e)
         return pd.DataFrame()
-    logging.debug(f"Solcast response for {name}: {response.status_code}")
+    logger.debug("Solcast response for %s: %d", name, response.status_code)
 
     if response.status_code == 200:
         data = json.loads(response.text)
@@ -50,10 +60,15 @@ def send_request(
         df["location_name"] = name
         df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
         return df
-    logging.error(
-        f"Bad response from Solacast API for forecast data at {latitude}, "
-        f"{longitude} with key= {api_key}.\n"
-        f"\tError {response.status_code}: {response.text}"
+    logger.error(
+        "Bad response from Solacast API for forecast data at %f, "
+        "%f with key= %s.\n"
+        "\tError %d: %s",
+        latitude,
+        longitude,
+        api_key,
+        response.status_code,
+        response.text,
     )
     return pd.DataFrame()
 
@@ -86,7 +101,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     wr.s3.to_parquet(
         df=df,
-        path=f"s3://duscweather/solcast/",
+        path="s3://duscweather/solcast/",
         dataset=True,
         mode="append",
         filename_prefix="solcast_",
