@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 
-import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
@@ -118,11 +117,3 @@ if __name__ == "__main__":  # pragma: no cover
             df = pd.concat([df, loc_df], axis=0)
         except NameError:
             df = loc_df
-
-    wr.s3.to_parquet(
-        df=df,
-        path=f"s3://duscweather/tomorrow/",
-        dataset=True,
-        mode="append",
-        filename_prefix="tomorrow_",
-    )
