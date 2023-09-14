@@ -83,7 +83,44 @@ def test_send_request_success(monkeypatch, mock_tomorrow_response, caplog):
     assert (result.location_name == name).min()
 
 
-def test_send_request_failure(monkeypatch, caplog):
+def test_send_request_failure(monkeypatch, mock_tomorrow_response, caplog):
+    def mock_get(url):
+        class MockResponse:
+
+            def __init__(self, json_data, status_code):
+                self.json_data = json_data
+                self.status_code = status_code
+                self.text = json.dumps(mock_tomorrow_response)
+
+            def json(self):
+                return self.json_data
+
+        if "location=37.7749,-122.4194" in url:
+            return MockResponse(mock_tomorrow_response, 200)
+        else:
+            return MockResponse(None, 404)
+
+    monkeypatch.setattr("requests.get", mock_get)
+
+    # call the function
+    latitude, longitude, api_key, name = (
+        404,
+        -69.420,
+        "your_api_key",
+        "404",
+    )
+    result = send_request(latitude, longitude, api_key, name)
+
+    # check that the function returns an empty DataFrame
+    assert isinstance(result, pd.DataFrame)
+    assert result.empty
+
+    # check that an error was captured in the log
+    assert "ERROR" in caplog.text
+    assert "404" in caplog.text
+
+
+def test_send_request_execption(monkeypatch, caplog):
     # set up mock response with error
     def mock_get(url):
         raise RequestException("Network error")
