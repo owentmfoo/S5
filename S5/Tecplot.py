@@ -232,9 +232,10 @@ class SSWeather(TecplotData):
         # the dat and time columns.
         if not isinstance(self.data.index, pd.DatetimeIndex):
             raise TypeError("Data index should be pd.DateTimeIndex.")
-        self.data.loc[:, "Day"] = (
-                self.data.index.day - self.data.index.day[0] + 1
-        )  # convert to day of race, 1 indexed
+        # convert to day of race, 1 indexed
+        self.data.loc[:, "Day"] = [
+            i.days + 1 for i in (self.data.index.date - self.data.index.date[0])
+        ]
         self.data.loc[:, "Time (HHMM)"] = self.data.index.strftime("%H%M")
 
     def check_rectangular(self):

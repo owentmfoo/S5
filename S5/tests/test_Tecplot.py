@@ -247,15 +247,16 @@ def test_weather_add_day_time_cols(weather_file, count):
     weather.data = weather.data.iloc[[1, -1], :]
     now = datetime.now()
     baseline = datetime(
-        now.year, now.month, random.randint(1, 23), now.hour, now.minute
+        now.year,
+        now.month,
+        random.randint(1, 29),
+        random.randint(0, 23),
+        random.randint(0, 59)
     )
     correct_datetime = [baseline, baseline + timedelta(minutes=count)]
     weather.data.index = correct_datetime
     weather.add_day_time_cols()
     weather.add_timestamp(startday=baseline.strftime("%Y%m%d"))
-    # print(f'correct datetime: \t {correct_datetime}')
-    # print((weather.data["DateTime"]))
-    # print(timedelta(seconds=count))
     pd.testing.assert_series_equal(
         weather.data["DateTime"],
         pd.Series(correct_datetime, name="DateTime"),
