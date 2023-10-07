@@ -1,14 +1,27 @@
-#  SolarSim Strategy Support Sofware (S5)
+# SolarSim Strategy Support Software (S5)
 
-To install the package locally download the tar.gz (e.g.S5-1.0b7.tar.gz) and navigate to it, run
+To install the package directly from GitHub:
 
-> `python3 -m pip install S5-xx.yy.zzz.tar.gz`
+```shell
+pip install git+https://github.com/owentmfoo/S5
+```
 
-Dependencies will be installed automatically.
+Optional dependencies:
 
-To install ecCodes: 
-Use conda<br />
-> `$ conda install -c conda-forge eccodes`<br />
+* test
+* grib
+* aws
 
-or you can install the official source distribution, follow the instructions [here](https://github.com/ecmwf/cfgrib) <br />
+Dependencies will be installed automatically apart from ecCodes which requires
+building with conda.
+
+To install ecCodes:
+Use conda
+
+```shell
+conda install -c conda-forge eccodes 
+```
+
+or you can install the official source distribution, follow the
+instructions [here](https://github.com/ecmwf/cfgrib) <br />
 
