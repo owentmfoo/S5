@@ -1,17 +1,17 @@
-import os
-import pytest
-from unittest import mock
 import multiprocessing as mp
+import os
 import subprocess as sp
-
-import S5.HPC.file_io as S5io
-import S5.HPC.SolarSim as SS
-import numpy as np
-from S5 import Tecplot as TP
-import pandas as pd
-from pandas.testing import assert_frame_equal
 from itertools import cycle
-import sys
+from unittest import mock
+
+import numpy as np
+import pandas as pd
+import pytest
+from pandas.testing import assert_frame_equal
+
+import S5.HPC.SolarSim as SS
+import S5.HPC.file_io as S5io
+from S5 import Tecplot as TP
 
 
 @pytest.fixture(scope='function')
@@ -202,7 +202,7 @@ def test_file_sweep_times_called(tmp_path, mock_Popen, monkeypatch):
 
 
 @pytest.mark.skip('Tests for multiprocessing functions to be implemented')
-def file_sweep_par():
+def test_file_sweep_par():
     # TODO: fix tests involveing multiprocessing
     pass
 
