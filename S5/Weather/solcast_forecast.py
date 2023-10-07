@@ -1,11 +1,13 @@
 import datetime
 import json
 import logging
+import os
 
 import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
+from solcast import live
 
 logger = logging.getLogger(__name__)
 null_handler = logging.NullHandler()
@@ -69,6 +71,108 @@ def send_request(
         api_key,
         response.status_code,
         response.text,
+    )
+    return pd.DataFrame()
+
+
+def send_live_request(
+        latitude: float, longitude: float, api_key: str, name: str = "unknown"
+) -> pd.DataFrame:
+    """Obtain the historic data from Solcast using the Solcast SDK
+
+    Args:
+        latitude: latitude of the spot to get the forecast.
+        longitude: longitude  of the spot to get the forecast.
+        api_key: Solcast api key
+        name: Name of the location for the forecast.
+
+    Returns:
+        Forecast as a dataframe.
+    """
+    os.environ["SOLCAST_API_KEY"] = api_key
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    logging.debug(
+        f"Sending request to solcast for lat:{latitude} lon:{longitude}")
+    res = live.radiation_and_weather(
+        latitude=latitude,
+        longitude=longitude,
+        output_parameters=["dni",
+                           "dhi",
+                           "temperature",
+                           "surface_pressure",
+                           "wind_speed_10m",
+                           "windDirection",
+                           "azimuth", "zenith"],
+        period='PT5M',
+        hours=168
+    )
+
+    logging.debug(f"Solcast live response for {name}: {res.code}")
+
+    if res.code == 200:
+        df = res.to_pandas()
+        df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
+        df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
+        df["latitude"] = latitude
+        df["longitude"] = longitude
+        df["location_name"] = name
+        df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
+        return df
+    logging.error(
+        f"Bad response from Solacast API for live data at {latitude}, "
+        f"{longitude} with key= {api_key}.\n"
+        f"\tError {res.code}: {res.exception}"
+    )
+    return pd.DataFrame()
+
+
+def send_forecast_request(
+        latitude: float, longitude: float, api_key: str, name: str = "unknown"
+) -> pd.DataFrame:
+    """Obtain the forecast from Solcast using the Solcast SDK
+
+    Args:
+        latitude: latitude of the spot to get the forecast.
+        longitude: longitude  of the spot to get the forecast.
+        api_key: Solcast api key
+        name: Name of the location for the forecast.
+
+    Returns:
+        Forecast as a dataframe.
+    """
+    os.environ["SOLCAST_API_KEY"] = api_key
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    logging.debug(
+        f"Sending forecast request to solcast for lat:{latitude} lon:{longitude}")
+    res = live.radiation_and_weather(
+        latitude=latitude,
+        longitude=longitude,
+        output_parameters=["dni", "dni10", "dni90",
+                           "dhi", "dhi10", "dhi90",
+                           "temperature",
+                           "surface_pressure",
+                           "wind_speed_10m",
+                           "windDirection",
+                           "azimuth", "zenith"],
+        period='PT5M',
+        hours=336
+    )
+
+    logging.debug(f"Solcast response for {name}: {res.code}")
+
+    if res.code == 200:
+        df = res.to_pandas()
+        df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
+        df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
+        df["latitude"] = latitude
+        df["longitude"] = longitude
+        df["location_name"] = name
+        df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
+        return df
+    logging.error(
+        f"Bad response from Solacast API for forecast data at {latitude}, "
+        f"{longitude} with key= {api_key}.\n"
+        f"\tError {res.code}: {res.exception}"
     )
     return pd.DataFrame()
 
