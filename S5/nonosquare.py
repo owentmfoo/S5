@@ -9,7 +9,7 @@ def why():
     """The answer to life, the universe and everything, and much much more than that."""
     THEANSWER = _Why()
     THEANSWER.disp()
-
+    return
 
 class _Why:
     """internal class to generate the answer to life, the universe and everything, and much much more than that."""
@@ -18,13 +18,19 @@ class _Why:
     Authors = ['Owen']
 
     # for people who "made the cut"
-    Names = ['Owen the Kiwi', 'David', 'James', 'Roy', 'Isaac', 'Liam', 'Ellie', 'Joe', 'Tom', 'Morgan', 'Jack', 'Adam',
+    Names = ['Owen the Kiwi', 'David', 'James', 'Cynthia', 'Isaac', 'Liam',
+             'Ellie', 'Joe', 'Tom', 'Morgan', 'Jack', 'Adam',
              'Alex', 'Emily', 'Frances', 'Andrew', 'Hugh', 'Rob', 'Rachel', 'Burce the Corcodile',
              'Luke', 'Anith', 'Brain', 'Flanders', 'Nick', 'Ella', 'Ved', 'Ioan', 'Dylan', 'Connor', 'Ben', 'Tommy',
-             'Zeynep',
+             'Zeynep', 'Matt', 'Tom', 'Saahil', 'Euan', 'Caitlin', 'Nicola',
+             'Ollie', ' Nic'
              'Morgan the Mollusc', 'Cephy the cephalopod', ]
 
     def disp(self):
+        output = self.random_string()
+        print(output.capitalize())
+
+    def random_string(self):
         n = random.randint(0, 100)
         if n < 10:
             output = self.quotes()
@@ -34,7 +40,7 @@ class _Why:
             output = self.phrase()
         else:
             output = self.sentence()
-        print(output.capitalize())
+        return output
 
     def special_case(self):
         sc_list = [f"Because {choice(self.Authors)} said so.",
@@ -191,7 +197,7 @@ class _Why:
             'all',
             'her',
             'him',
-            'they'
+            'them'
         ]
         return choice(accu_pron_lst)
 
@@ -226,16 +232,17 @@ class _Why:
             "Life is worse now I have no chicken.",
             "There are new fresh coming in, you don’t need to bully me anymore!",
             "It’s a can. It should be in the CAN-opy.",
-            "Carbon’s meant to be black so it's fine.",
+            "I don't know, I've never laid an egg.",
             "Why would Deacs think…?",
             "But I can see Joe being a special case.",
             "Why won’t you let me mate.",
             "I’m trying to do Maths.",
             "I do like a slap.",
-            "Run my babies, run!",
+            "150 is close to 100",
             "Pulleys are bulletproof.",
             "This is no fun at all!",
             "It's a bit like F1.",
+            "Pigs aren’t square!"
         ]
         return choice(quotes)
 
