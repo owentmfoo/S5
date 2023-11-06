@@ -4,6 +4,8 @@ Script to plot the car through time and space overlaid on top of the weather con
 This version have the distance on the x-axis
 WIP
 """
+import os
+
 import matplotlib
 import matplotlib.dates as dates
 import matplotlib.pyplot as plt
@@ -67,6 +69,49 @@ def plot_trace(hist, ax=None, **kwargs):
     ax.plot(hist.data['Distance(km)'], hist.data['DateTime'], **kwargs)
     ax.set_ylim([dates.date2num(hist.data['DateTime'].min()) - 1 / 24,
                  dates.date2num(hist.data['DateTime'].max()) + 1 / 24])
+
+
+def plot_airspeed(history_path):
+    HISTORY = TP.SSHistory(history_path)
+    HISTORY.add_timestamp(startday=START_DATE)
+    hist = HISTORY.data
+    hist = hist.set_index('DateTime')
+    hist['Day'] = hist['DDHHMMSS'] // 1000000
+    hist['km500'] = hist['Distance(km)'] // 500
+    filter = hist['CarVel(m/s)'] == 0
+    hist = hist[filter == False]
+    # Get the average wind speed per day
+    hist['AirSpeed(m/s)'] = hist['CarVel(m/s)'] + hist['HeadWind(m/s)']
+    fig, ax = plt.subplots(nrows=hist['Day'].nunique(), ncols=2)
+    fig.set_size_inches(8.3, 11.7)
+    # fig.set_dpi(150)
+    fig.suptitle(HISTORY.filename)
+    fig.tight_layout(rect=(0.11, 0.02, 1, 0.98))
+    for i, day in enumerate(hist['Day'].unique()):
+        hist[hist['Day'] == day][['AirSpeed(m/s)']].plot(subplots=True,
+                                                         marker='.', ax=ax[
+                i, 0])  # TODO: allow this to be override by some way?
+        hist[hist['Day'] == day][['HeadWind(m/s)']].plot(subplots=True,
+                                                         marker='.',
+                                                         ax=ax[i, 1])
+        ax[i, 0].set_ylim([19, 30])  # TODO: better way to set limits.
+        ax[i, 0].set_title(f'{os.path.basename(HISTORY.filename)} Day {day}')
+    plt.show()
+    return fig
+
+
+def get_weather(history_path):
+    HISTORY = TP.SSHistory(history_path)
+    HISTORY.add_timestamp(startday=START_DATE)
+    Control = TP.DSWinput(
+        os.path.join(os.path.dirname(HISTORY.filename), "SolarSim.in")
+    )
+    Weather = TP.SSWeather(
+        os.path.join(os.path.dirname(HISTORY.filename),
+                     Control.get_value("WeatherFile").strip('"'))
+    )
+    Weather.add_timestamp(startday=START_DATE)
+    return Weather
 
 
 if __name__ == '__main__':
