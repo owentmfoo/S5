@@ -1,18 +1,20 @@
 import datetime
 import json
 import logging
+import os
+import time
 
-import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
+from solcast import live, forecast
 
 logger = logging.getLogger(__name__)
 null_handler = logging.NullHandler()
 logger.addHandler(null_handler)
 
 
-def send_request(
+def send_request_old(
         latitude: float, longitude: float, api_key: str, name: str = "unknown"
 ) -> pd.DataFrame:
     """Obtain the forecast from Solcast
@@ -73,36 +75,142 @@ def send_request(
     return pd.DataFrame()
 
 
-if __name__ == "__main__":  # pragma: no cover
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("lambda function started")
-    from config import solcast_api_key
+def send_live_request(
+        latitude: float, longitude: float, api_key: str, name: str = "unknown"
+) -> pd.DataFrame:
+    """Obtain the historic data from Solcast using the Solcast SDK
 
-    API_KEY = solcast_api_key
+    Args:
+        latitude: latitude of the spot to get the forecast.
+        longitude: longitude  of the spot to get the forecast.
+        api_key: Solcast api key
+        name: Name of the location for the forecast.
 
-    locations = [
-        [51.178882, -1.826215, "Stonehenge"],
-        [41.89021, 12.492231, "The Colosseum"],
-        [-12.4239, 130.8925, "Darwin_Airport"],
-        [-19.64, 134.18, "Tennant_Creek_Airport"],
-        [-23.7951, 133.8890, "Alice_Springs_Airport"],
-        [-29.03, 134.72, "Coober_Pedy_Airport"],
-        [-34.9524, 138.5196, "Adelaide_Airport"],
-        [-31.1558, 136.8054, "Woomera"],
-        [-16.262330910217, 133.37694753742824, "Daly_Waters"],
-    ]
+    Returns:
+        Forecast as a dataframe.
+    """
+    os.environ["SOLCAST_API_KEY"] = api_key
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    period = "PT5M"
+    retries = 3
+    for i in range(retries):
+        res = live.radiation_and_weather(
+            latitude=latitude,
+            longitude=longitude,
+            output_parameters=[
+                "dni",
+                "dhi",
+                "air_temp",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "azimuth",
+                "zenith",
+            ],
+            period=period,
+            hours=168,
+        )
+        if res.code == 200:
+            logging.debug("successful request for %s", name)
+            loc_df = res.to_pandas()
+            loc_df = loc_df.rename(
+                columns={
+                    "surface_pressure": "pressureSurfaceLevel",
+                    "wind_speed_10m": "windSpeed",
+                    "wind_direction_10m": "windDirection",
+                }
+            )
+            loc_df.reset_index(inplace=True)
+            loc_df.loc[:, "period"] = period
+            loc_df.loc[:, "period"] = loc_df.loc[:, "period"].astype(
+                pd.CategoricalDtype()
+            )
+            loc_df["latitude"] = latitude
+            loc_df["longitude"] = longitude
+            loc_df["location_name"] = name
+            loc_df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
+            return loc_df
+        elif res.code == 429:
+            logging.info(
+                "rate limited for request %s, %d retry remaining, "
+                "retrying in %d seconds",
+                name,
+                retries - i,
+                int(res.exception[-10:-8]) + 1,
+            )
+            time.sleep(int(res.exception[-10:-8]) + 1)
+    logging.error("Unable to get forecast for %s, error %s",
+                  name,
+                  res.exception)
 
-    for location in locations:
-        loc_df = send_request(location[0], location[1], API_KEY, location[2])
-        try:
-            df = pd.concat([df, loc_df], axis=0)
-        except NameError:
-            df = loc_df
 
-    wr.s3.to_parquet(
-        df=df,
-        path="s3://duscweather/solcast/",
-        dataset=True,
-        mode="append",
-        filename_prefix="solcast_",
-    )
+def send_forecast_request(
+        latitude: float, longitude: float, api_key: str, name: str = "unknown"
+) -> pd.DataFrame:
+    """Obtain the forecast from Solcast using the Solcast SDK
+
+    Args:
+        latitude: latitude of the spot to get the forecast.
+        longitude: longitude  of the spot to get the forecast.
+        api_key: Solcast api key
+        name: Name of the location for the forecast.
+
+    Returns:
+        Forecast as a dataframe.
+    """
+    os.environ["SOLCAST_API_KEY"] = api_key
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    period = "PT5M"
+    retries = 3
+    for i in range(retries):
+        res = forecast.radiation_and_weather(
+            latitude=latitude,
+            longitude=longitude,
+            output_parameters=[
+                "dni",
+                "dni10",
+                "dni90",
+                "dhi",
+                "dhi10",
+                "dhi90",
+                "air_temp",
+                "surface_pressure",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "azimuth",
+                "zenith",
+            ],
+            period=period,
+            hours=336,
+        )
+        if res.code == 200:
+            logging.debug("successful request for %s", name)
+            loc_df = res.to_pandas()
+            loc_df = loc_df.rename(
+                columns={
+                    "surface_pressure": "pressureSurfaceLevel",
+                    "wind_speed_10m": "windSpeed",
+                    "wind_direction_10m": "windDirection",
+                }
+            )
+            loc_df.reset_index(inplace=True)
+            loc_df.loc[:, "period"] = period
+            loc_df.loc[:, "period"] = loc_df.loc[:, "period"].astype(
+                pd.CategoricalDtype()
+            )
+            loc_df["latitude"] = latitude
+            loc_df["longitude"] = longitude
+            loc_df["location_name"] = name
+            loc_df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
+            return loc_df
+        elif res.code == 429:
+            logging.info(
+                "rate limited for request %s, %d retry remaining, "
+                "retrying in %d seconds",
+                name,
+                retries - i,
+                int(res.exception[-10:-8]) + 1,
+            )
+            time.sleep(int(res.exception[-10:-8]) + 1)
+    logging.error("Unable to get forecast for %s, error %s", name,
+                  res.exception)

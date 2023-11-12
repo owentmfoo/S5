@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 
-import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
@@ -32,9 +31,6 @@ def send_request(
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
 
     # Send the API request
-    logging.debug(
-        "Sending request to tomorrow.io for lat:%f lon:%f", latitude, longitude
-    )
     logger.debug(
         "Sending request to tomorrow.io for lat: %f lon: %f with key: %s",
         latitude,
@@ -44,15 +40,17 @@ def send_request(
     try:
         response = requests.get(url)
     except requests.RequestException as e:
-        logger.error(e)
+        logging.error(e)
         return pd.DataFrame()
-    logger.debug("tomorrow.io response for %s: %d", name, response.status_code)
+    logging.debug(
+        "tomorrow.io response for %s: %d", name, response.status_code
+    )
 
     # Parse the response JSON
     if response.status_code != 200:
-        logger.error(
+        logging.error(
             "Bad response from tomorrow.io API for forecast data at %f, "
-            "%d with key= %s.\n"
+            "%f with key= %s.\n"
             "\tError %s: %s",
             latitude,
             longitude,
@@ -65,46 +63,28 @@ def send_request(
     data = json.loads(response.text)
 
     timescale = "minutely"
-    # minutely = pd.DataFrame(
-    #     [i["values"].values() for i in data["timelines"][timescale]],
-    #     columns=data["timelines"][timescale][0]["values"].keys(),
-    #     index=[i["time"] for i in data["timelines"][timescale]],
-    # )
     minutely2 = pd.DataFrame(
         [
             pd.Series(i["values"], name=i["time"])
             for i in data["timelines"][timescale]
         ]
     )
-    # pd.testing.assert_frame_equal(minutely, minutely2, check_dtype=False)
 
     timescale = "hourly"
-    # hourly = pd.DataFrame(
-    #     [i["values"].values() for i in data["timelines"][timescale]],
-    #     columns=data["timelines"][timescale][0]["values"].keys(),
-    #     index=[i["time"] for i in data["timelines"][timescale]],
-    # )
     hourly2 = pd.DataFrame(
         [
             pd.Series(i["values"], name=i["time"])
             for i in data["timelines"][timescale]
         ]
     )
-    # pd.testing.assert_frame_equal(hourly, hourly2, check_dtype=False)
 
     timescale = "daily"
-    # daily = pd.DataFrame(
-    #     [i["values"].values() for i in data["timelines"][timescale]],
-    #     columns=data["timelines"][timescale][0]["values"].keys(),
-    #     index=[i["time"] for i in data["timelines"][timescale]],
-    # )
     daily2 = pd.DataFrame(
         [
             pd.Series(i["values"], name=i["time"])
             for i in data["timelines"][timescale]
         ]
     )
-    # pd.testing.assert_frame_equal(daily, daily2, check_dtype=False)
 
     df = pd.concat([minutely2, hourly2, daily2])
 
@@ -152,11 +132,3 @@ if __name__ == "__main__":  # pragma: no cover
             df = pd.concat([df, loc_df], axis=0)
         except NameError:
             df = loc_df
-
-    wr.s3.to_parquet(
-        df=df,
-        path="s3://duscweather/tomorrow/",
-        dataset=True,
-        mode="append",
-        filename_prefix="tomorrow_",
-    )

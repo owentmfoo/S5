@@ -42,6 +42,9 @@ aws = [
 "boto3 >= 1.26",
 "awswrangler >= 3.1.1",
 ]
+forecast = [
+    "solcast ~= 1.0.2",
+]
 
 [tool.pytest.ini_options]
  	addopts = [
@@ -65,10 +68,11 @@ aws = [
 [tool.coverage.report]
 exclude_also = [
     "if __name__ == .__main__.:",
-    ]
+]
 
 [tool.coverage.run]
 omit = [
-    # omit this single file
+    "S5/tests/*",
     "S5/visualisation/*",
-    ]
+]
+

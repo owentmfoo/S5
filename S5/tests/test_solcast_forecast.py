@@ -1,10 +1,19 @@
 import json
+import random
+import time
+from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 import requests
 from requests import RequestException
+from solcast.api import Response
 
-from S5.Weather.solcast_forecast import send_request
+from S5.Weather.solcast_forecast import (
+    send_request_old,
+    send_live_request,
+    send_forecast_request,
+)
 
 # Define mock input parameters
 latitude = 37.7749
@@ -35,7 +44,6 @@ response_text = {
 
 # Define mock response object
 class MockResponse:
-
     def __init__(self, status_code, text):
         self.status_code = status_code
         self.text = text
@@ -47,7 +55,10 @@ class MockResponse:
 # Define test function
 def test_send_request(monkeypatch, caplog):
     # Define mock response
-    mock_response = MockResponse(status_code=200, text=json.dumps(response_text))
+    mock_response = MockResponse(
+        status_code=200,
+        text=json.dumps(response_text)
+    )
 
     # Mock the requests.get method
     def mock_get(*args, **kwargs):
@@ -56,7 +67,7 @@ def test_send_request(monkeypatch, caplog):
     monkeypatch.setattr(requests, "get", mock_get)
 
     # Call the send_request function
-    result = send_request(latitude, longitude, api_key, name)
+    result = send_request_old(latitude, longitude, api_key, name)
 
     # Check the result is a pandas DataFrame
     assert isinstance(result, pd.DataFrame)
@@ -99,7 +110,7 @@ def test_send_request(monkeypatch, caplog):
     monkeypatch.setattr(requests, "get", mock_get)
 
     # Call the send_request function
-    result = send_request(latitude, longitude, api_key, name)
+    result = send_request_old(latitude, longitude, api_key, name)
 
     # Check that the DataFrame is empty
     assert result.empty
@@ -119,7 +130,7 @@ def test_send_request_failure(monkeypatch, caplog):
 
     monkeypatch.setattr("requests.get", mock_get)
 
-    result = send_request(latitude, longitude, api_key, name)
+    result = send_request_old(latitude, longitude, api_key, name)
 
     # check that the function returns an empty DataFrame
     assert isinstance(result, pd.DataFrame)
@@ -128,3 +139,92 @@ def test_send_request_failure(monkeypatch, caplog):
     # check that an error was captured in the log
     assert "ERROR" in caplog.text
     assert "Network error" in caplog.text
+
+
+@pytest.fixture()
+def mock_solcast_response():
+    mock_response = MagicMock(spec=Response)
+    mock_response.code = 200
+    mock_response.url = "https://example.com"
+    mock_response.data = b'{"example": "data"}'
+    mock_response.success = True
+    mock_response.exception = None
+    return mock_response
+
+
+def test_send_live_requests(monkeypatch, mock_solcast_response):
+    # arrange
+    def mock_solcast_call(*args, **kwargs):
+        return mock_solcast_response
+
+    monkeypatch.setattr("solcast.live.radiation_and_weather", mock_solcast_call)
+
+    # act
+    response = send_live_request(latitude, longitude, api_key, name)
+
+    # assert
+    mock_solcast_response.to_pandas.assert_called()
+
+
+def test_send_live_requests_timeout(monkeypatch, mock_solcast_response):
+    # arrange
+    mock_solcast_response.code = 429
+    timout = random.randrange(1, 60)
+    mock_solcast_response.exception = f"Rate limited ... {timout} second."
+
+    def mock_solcast_call(*args, **kwargs):
+        return mock_solcast_response
+
+    monkeypatch.setattr("solcast.live.radiation_and_weather", mock_solcast_call)
+    mock_sleep = MagicMock(spec_set=time.sleep)
+    monkeypatch.setattr("time.sleep", mock_sleep)
+
+    # act
+    response = send_live_request(latitude, longitude, api_key, name)
+
+    # assert
+    assert response is None
+    mock_sleep.assert_called_with(timout + 1)
+    assert mock_sleep.call_count == 3
+
+
+def test_send_forecast_requests(monkeypatch, mock_solcast_response):
+    # arrange
+    def mock_solcast_call(*args, **kwargs):
+        return mock_solcast_response
+
+    monkeypatch.setattr(
+        "solcast.forecast.radiation_and_weather",
+        mock_solcast_call
+    )
+
+    # act
+    response = send_forecast_request(latitude, longitude, api_key, name)
+
+    # assert
+    mock_solcast_response.to_pandas.assert_called()
+
+
+def test_send_forecast_requests_timeout(monkeypatch, mock_solcast_response):
+    # arrange
+    mock_solcast_response.code = 429
+    timout = random.randrange(1, 60)
+    mock_solcast_response.exception = f"Rate limited ... {timout} second."
+
+    def mock_solcast_call(*args, **kwargs):
+        return mock_solcast_response
+
+    monkeypatch.setattr(
+        "solcast.forecast.radiation_and_weather",
+        mock_solcast_call
+    )
+    mock_sleep = MagicMock(spec_set=time.sleep)
+    monkeypatch.setattr("time.sleep", mock_sleep)
+
+    # act
+    response = send_forecast_request(latitude, longitude, api_key, name)
+
+    # assert
+    assert response is None
+    mock_sleep.assert_called_with(timout + 1)
+    assert mock_sleep.call_count == 3
