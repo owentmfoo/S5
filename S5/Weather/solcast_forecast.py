@@ -4,7 +4,6 @@ import logging
 import os
 import time
 
-import awswrangler as wr
 import numpy as np
 import pandas as pd
 import requests
@@ -15,7 +14,7 @@ null_handler = logging.NullHandler()
 logger.addHandler(null_handler)
 
 
-def send_request(
+def send_request_old(
         latitude: float, longitude: float, api_key: str, name: str = "unknown"
 ) -> pd.DataFrame:
     """Obtain the forecast from Solcast
@@ -129,8 +128,7 @@ def send_live_request(
             loc_df["latitude"] = latitude
             loc_df["longitude"] = longitude
             loc_df["location_name"] = name
-            loc_df["prediction_date"] = np.datetime64(
-                pd.Timestamp(timestamp))
+            loc_df["prediction_date"] = np.datetime64(pd.Timestamp(timestamp))
             return loc_df
         elif res.code == 429:
             logging.info(
@@ -214,41 +212,5 @@ def send_forecast_request(
                 int(res.exception[-10:-8]) + 1,
             )
             time.sleep(int(res.exception[-10:-8]) + 1)
-    logging.error("Unable to get forecast for %s, error %s",
-                  name,
+    logging.error("Unable to get forecast for %s, error %s", name,
                   res.exception)
-
-
-if __name__ == "__main__":  # pragma: no cover
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("lambda function started")
-    from config import solcast_api_key
-
-    API_KEY = solcast_api_key
-
-    locations = [
-        [51.178882, -1.826215, "Stonehenge"],
-        [41.89021, 12.492231, "The Colosseum"],
-        [-12.4239, 130.8925, "Darwin_Airport"],
-        [-19.64, 134.18, "Tennant_Creek_Airport"],
-        [-23.7951, 133.8890, "Alice_Springs_Airport"],
-        [-29.03, 134.72, "Coober_Pedy_Airport"],
-        [-34.9524, 138.5196, "Adelaide_Airport"],
-        [-31.1558, 136.8054, "Woomera"],
-        [-16.262330910217, 133.37694753742824, "Daly_Waters"],
-    ]
-
-    for location in locations:
-        loc_df = send_request(location[0], location[1], API_KEY, location[2])
-        try:
-            df = pd.concat([df, loc_df], axis=0)
-        except NameError:
-            df = loc_df
-
-    wr.s3.to_parquet(
-        df=df,
-        path="s3://duscweather/solcast/",
-        dataset=True,
-        mode="append",
-        filename_prefix="solcast_",
-    )
