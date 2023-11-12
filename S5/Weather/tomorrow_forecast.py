@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 import requests
 
+logger = logging.getLogger(__name__)
+null_handler = logging.NullHandler()
+logger.addHandler(null_handler)
+
 
 def send_request(
         latitude: float, longitude: float, api_key: str, name: str = "unknown"
@@ -27,8 +31,11 @@ def send_request(
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
 
     # Send the API request
-    logging.debug(
-        "Sending request to tomorrow.io for lat:%f lon:%f", latitude, longitude
+    logger.debug(
+        "Sending request to tomorrow.io for lat: %f lon: %f with key: %s",
+        latitude,
+        longitude,
+        api_key,
     )
     try:
         response = requests.get(url)
@@ -56,46 +63,28 @@ def send_request(
     data = json.loads(response.text)
 
     timescale = "minutely"
-    # minutely = pd.DataFrame(
-    #     [i["values"].values() for i in data["timelines"][timescale]],
-    #     columns=data["timelines"][timescale][0]["values"].keys(),
-    #     index=[i["time"] for i in data["timelines"][timescale]],
-    # )
     minutely2 = pd.DataFrame(
         [
             pd.Series(i["values"], name=i["time"])
             for i in data["timelines"][timescale]
         ]
     )
-    # pd.testing.assert_frame_equal(minutely, minutely2, check_dtype=False)
 
     timescale = "hourly"
-    # hourly = pd.DataFrame(
-    #     [i["values"].values() for i in data["timelines"][timescale]],
-    #     columns=data["timelines"][timescale][0]["values"].keys(),
-    #     index=[i["time"] for i in data["timelines"][timescale]],
-    # )
     hourly2 = pd.DataFrame(
         [
             pd.Series(i["values"], name=i["time"])
             for i in data["timelines"][timescale]
         ]
     )
-    # pd.testing.assert_frame_equal(hourly, hourly2, check_dtype=False)
 
     timescale = "daily"
-    # daily = pd.DataFrame(
-    #     [i["values"].values() for i in data["timelines"][timescale]],
-    #     columns=data["timelines"][timescale][0]["values"].keys(),
-    #     index=[i["time"] for i in data["timelines"][timescale]],
-    # )
     daily2 = pd.DataFrame(
         [
             pd.Series(i["values"], name=i["time"])
             for i in data["timelines"][timescale]
         ]
     )
-    # pd.testing.assert_frame_equal(daily, daily2, check_dtype=False)
 
     df = pd.concat([minutely2, hourly2, daily2])
 
