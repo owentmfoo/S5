@@ -70,5 +70,5 @@ exclude_also = [
 [tool.coverage.run]
 omit = [
     # omit this single file
-    "S5/Weather/visualise_weather.py",
+    "S5/visualisation/*",
     ]

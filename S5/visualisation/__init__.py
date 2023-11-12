@@ -1,5 +1,5 @@
 """
-Functions to visualise Strategy related data.
+Functions to visualise strategy related data.
 """
 import os
 from typing import Union, Tuple
