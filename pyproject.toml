@@ -73,4 +73,6 @@ exclude_also = [
 [tool.coverage.run]
 omit = [
     "S5/tests/*",
+    "S5/visualisation/*",
 ]
+
