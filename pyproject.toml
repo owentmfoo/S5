@@ -64,3 +64,13 @@ forecast = [
     "ignore:In a future version.*:FutureWarning",
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning:numpy.*",
 ]
+
+[tool.coverage.report]
+exclude_also = [
+    "if __name__ == .__main__.:",
+]
+
+[tool.coverage.run]
+omit = [
+    "S5/tests/*",
+]

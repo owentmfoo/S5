@@ -4,4 +4,4 @@ A module to be used in conjunction with SolarSim, to prepare input data, run Sol
 results.
 """
 
-__version__ = "1.0.b9"
+__version__ = "1.0.b10"
