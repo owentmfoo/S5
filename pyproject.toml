@@ -51,17 +51,17 @@ docs = [
 ]
 
 [tool.pytest.ini_options]
- 	addopts = [
-	    "--strict-markers",
- 	   "--strict-config",
-        "-ra",
- 	    ]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+]
 
- 	testpaths = "S5"
+testpaths = "S5"
 
 markers = [
     "smoke: subset of tests",
-    "exception: check for expected exceptions"
+    "exception: check for expected exceptions",
 ]
 filterwarnings = [
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning:pandas.*",
