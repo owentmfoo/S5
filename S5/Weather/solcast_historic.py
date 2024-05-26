@@ -196,7 +196,8 @@ def read_solcast_csv(filename: Union[str, PathLike], distance: float, start_date
 
     # convert the data type of the datetime columns. Decoded not to rename the PeriodStart column to leave flexibility
     # in the future if we want to say the samples corresponds to the middle of the period
-    df.loc[:, ['PeriodEnd', 'PeriodStart']] = df.loc[:, ['PeriodEnd', 'PeriodStart']].astype(np.datetime64)
+    df.loc[:, ['PeriodEnd']] = pd.to_datetime(df['PeriodEnd'])
+    df.loc[:, ['PeriodStart']] = pd.to_datetime(df['PeriodStart'])
     df.loc[:, 'DateTime'] = df['PeriodStart']
     df.drop(columns=['PeriodEnd', 'PeriodStart'], inplace=True)
 
@@ -213,7 +214,7 @@ def read_solcast_csv(filename: Union[str, PathLike], distance: float, start_date
 
     # as the csv are in UTC, localize timezone before slicing the portion of data that we want.
     df.set_index('DateTime', inplace=True)
-    df = df.tz_localize('UTC').loc[start_date:end_date, :].copy()
+    df = df.loc[start_date:end_date, :].copy()
 
     # return only the columns that we are interested in.
     df = df[['Distance (km)', 'DirectSun (W/m2)', 'DiffuseSun (W/m2)', 'SunAzimuth (deg)',
