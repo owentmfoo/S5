@@ -54,14 +54,14 @@ docs = [
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "-ra"
+    "-ra",
 ]
 
 testpaths = "S5"
 
 markers = [
     "smoke: subset of tests",
-    "exception: check for expected exceptions"
+    "exception: check for expected exceptions",
 ]
 filterwarnings = [
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning:pandas.*",
