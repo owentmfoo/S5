@@ -55,7 +55,7 @@ def send_request_old(
     if response.status_code == 200:
         data = json.loads(response.text)
         df = pd.DataFrame(data["forecasts"])
-        df.loc[:, "period_end"] = df.loc[:, "period_end"].astype(np.datetime64)
+        df.loc[:, "period_end"] = pd.to_datetime(df["period_end"])
         df.loc[:, "period"] = df.loc[:, "period"].astype(pd.CategoricalDtype())
         df["latitude"] = latitude
         df["longitude"] = longitude
