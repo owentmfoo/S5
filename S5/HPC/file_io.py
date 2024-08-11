@@ -1,17 +1,27 @@
+import os
 from typing import Union
+
 import numpy as np
 import pandas as pd
+
 from S5.HPC.optimisation import set_mean
 from S5.Tecplot import TecplotData, TPHeaderZone, DSWinput, SSHistory
 
 
 def write_vel(tvel_kph: Union[pd.DataFrame, float, int], outfile=None) -> None:
+    """Create Target Velocity files with constant velocity profile.
+
+    Args:
+        tvel_kph: Target velocity, or DataFrame of target velocities.
+        outfile: Name of the output velocity file.
+
+    Returns:
+        None, velocity file is created at the path specified by `outfile`.
+
+    Examples:
+        >>> write_vel(70,'TargetVel.dat')
     """
-    create Target Velocity files with constant velocity profile.
-    :param tvel_kph: target velocity, or dataframe of target velocities
-    :param outfile: filename to be create as
-    >>> write_vel(70,'TargetVel.dat')
-    """
+
     if outfile is None:
         outfile = "TargetVel.dat"
 
@@ -33,12 +43,17 @@ def write_vel(tvel_kph: Union[pd.DataFrame, float, int], outfile=None) -> None:
 
 
 # TODO: to refactor as the summary method in the SSHistory class?
-def read_history(histfile=None):
-    """read and return the summary statistics of the history file as a list
-    :param histfile: name of the history file
-    :return driving_time, dist, soc, avg_vel, Vstd, SoCMax, SoCMin:
+def read_history(history_file_path: Union[str, os.PathLike]):
+    """Read and return the summary statistics of the history file as a list.
+
+    Args:
+        history_file_path: Path to the history file
+
+    Returns:
+        A list for statistics in the order of
+        `driving_time, dist, soc, avg_vel, Vstd, SoCMax, SoCMin`
     """
-    hist_tp = SSHistory(histfile)
+    hist_tp = SSHistory(history_file_path)
     # finish time in duration
     # finish SoC
     # check if soc reach 0
@@ -62,9 +77,11 @@ def read_history(histfile=None):
 
 
 def adjust_v(file: TecplotData, v_bar: float):
-    """adjust the mean velocity of the target file such that it is at v_bar
-    :param file: The TecplotData object containing the velocity file
-    :param v_bar: the new mean velocity to set to
+    """Adjust the mean velocity of the target file such that it is at v_bar.
+
+    Args:
+        file: The TecplotData object representing the velocity file.
+        v_bar: The new mean velocity.
     """
     # TODO: add clip to pass through to set_mean
     # TODO: should this be moved to be a Target velocity object and adjust velocity method?
@@ -74,18 +91,34 @@ def adjust_v(file: TecplotData, v_bar: float):
     file.data['TargetVel (km/h)'] = vel
 
 
-def win2lin(filepath: str) -> None:
-    r""" convert DSW input files from windown to linux compatiable (slashes from \ to /)
-    :param filepath: file that need to be converted
+def win2lin(filepath: Union[str, os.PathLike]) -> None:
+    r"""Convert DSW input files from windows to linux compatible.
+
+    Reads the input file and overwrites the file with the correct slash
+    (from ``\`` to ``/``).
+
+    Args:
+        filepath: Path to input file.
+
+    See Also:
+        S5.HPC.file_io.lin2win : The reverse operation.
     """
     input_file = DSWinput(filepath)
     input_file.format("lin")
     input_file.write_input(filepath)
 
 
-def lin2win(filepath: str) -> None:
-    r""" convert DSW input files from linus to windows compatiable (slashes from / to \)
-    :param filepath: file that need to be converted
+def lin2win(filepath: Union[str, os.PathLike]) -> None:
+    r"""Convert DSW input files from linus to windows compatible.
+
+    Reads the input file and overwrites the file with the correct slash
+    (from ``/`` to ``\``).
+
+    Args:
+        filepath: Path to input file.
+
+    See Also:
+        S5.HPC.file_io.win2lin : The reverse operation.
     """
     input_file = DSWinput(filepath)
     input_file.format("win")

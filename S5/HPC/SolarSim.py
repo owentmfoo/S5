@@ -19,13 +19,19 @@ def run_ss(
         solartotals: Union[str, PathLike],
         lock: Optional[mp.Lock] = None,
 ) -> None:
-    """run solar sim
-    :param executable_location: path to SolarSim to execute
-    :param control: path to control file
-    :param summary: path to write summary file
-    :param history: path to write history file
-    :param solartotals: path to write solartotals file
-    :param lock: multiprocessing lock for parallel computing
+    """Run solar sim
+
+    Args:
+        executable_location: Path to SolarSim to execute.
+        control: Pth to control file.
+        summary: Path to write summary file.
+        history: Path to write history file.
+        solartotals: Path to write solartotals file.
+        lock: `multiprocessing.Lock` for parallel computing.
+
+    Returns:
+        None, lock is released when SolarSim have finished reading in the input
+        files
     """
     t = np.datetime64("now")
     print(f"SolarSim started at {str(t)}")
@@ -74,14 +80,20 @@ def const_vel(
         history: Union[str, PathLike],
         solartotals: Union[str, PathLike],
 ) -> None:
-    """run solar sim at const vel t_vel
-    :param lock: multiprocessing.lock for parallel computing
-    :param t_vel: target velocity to run at
-    :param executable_location: path to SolarSim to execute
-    :param control: path to control file
-    :param summary: path to write summary file
-    :param history: path to write history file
-    :param solartotals: path to write solartotals file
+    """Run solar sim at constant velocity `t_vel`.
+
+    Args:
+        lock: `multiprocessing.Lock` for parallel computing
+        t_vel: Target velocity to run the simulation at.
+        executable_location: Path to SolarSim to execute.
+        control: Pth to control file.
+        summary: Path to write summary file.
+        history: Path to write history file.
+        solartotals: Path to write solartotals file.
+
+    Returns:
+        None, lock is released when SolarSim have finished reading in the input
+        files
     """
     lock.acquire()  # block until SS readin complete (released in run_ss)
     write_vel(t_vel)
@@ -93,10 +105,18 @@ def vel_sweep(
         vel_list: List[float],
         executable_location: Union[str, PathLike] = "../SolarSim.X"
 ) -> None:
-    """perform a constant velocity sweep with velocities in the list vel_list, parallel version available as
-    vel_sweep_par
-    :param vel_list: list of floats containing the velocities to run at
-    :param executable_location: location of the solarsim executable
+    """Performs a constant velocity sweep.
+
+    Args:
+        vel_list: List of floats containing the velocities to run at.
+        executable_location: Path to SolarSim to execute.
+
+    Returns:
+        None
+
+    See Also:
+        `S5.HPC.SolarSim.vel_sweep_par` : Run this function in parallel.
+        `S5.HPC.SolarSim.read_vel_sweep` : Read the results of a velocity sweep.
     """
     lock = mp.Manager().Lock()
     for v in vel_list:
@@ -116,17 +136,21 @@ def vel_sweep_par(
         executable_location: Union[str, PathLike] = "../SolarSim.X",
         n_jobs: int = mp.cpu_count() - (2 * (mp.cpu_count() <= 16)),
 ) -> None:
-    """perform a constant velocity sweep with velocities in the list vel_list in parallel, parallel version of vel_sweep
+    """Performs a constant velocity sweep in parallel.
 
     Args:
         vel_list: List of floats containing the velocities to run at.
-        executable_location: Location of the solarsim executable
+        executable_location: Path to SolarSim to execute.
         n_jobs: Number of SolarSims to run in parallel, if less than 16 cpu
-            (non-HPC) it will default to number of cpu - 2, else it will be
+            (non-HPC) it will default to `number of cpu - 2`, else it will be
             the number of cpu available.
 
     Returns:
         None
+
+    See Also:
+        `S5.HPC.SolarSim.vel_sweep` : Run this function in series.
+        `S5.HPC.SolarSim.read_vel_sweep` : Read the results of a velocity sweep.
     """
     lock = mp.Manager().Lock()
     args = []
@@ -149,9 +173,14 @@ def vel_sweep_par(
 def read_vel_sweep(
         vel_list: List[float], path: Union[str, PathLike] = "./"
 ) -> pd.DataFrame:
-    """read the set of results of vel_sweep, return dataframe containing key results.
-    :param vel_list: list of floats containing the velocities to run at
-    :param path: location of the files
+    """Read the set of results of vel_sweep
+
+    Args:
+        vel_list: List of floats containing the velocities that were ran at.
+        path: Location of the history files.
+
+    Returns:
+        Dataframe containing key results.
     """
     result = pd.DataFrame(
         index=range(len(vel_list)),
@@ -186,15 +215,27 @@ def file_swap(
         history: Union[str, PathLike],
         solartotals: Union[str, PathLike],
 ) -> None:
-    """swap file in and run SS with it
-    :param lock: multiprocessing.lock for parallel computing
-    :param filename: filename to be swapped in for solarsim
-    :param run_name: name referenced in control file
-    :param executable_location: path to SolarSim to execute
-    :param control: path to control file
-    :param summary: path to write summary file
-    :param history: path to write history file
-    :param solartotals: path to write solartotals file
+    """Swap file in and run SolarSim with it.
+
+    This function will take a copy of the file specified by `filename` and
+    rename it to `run_name`. To use this function the control file entry for the
+    corresponding file should be the same as `run_name`.
+
+    Args:
+        lock: `multiprocessing.Lock` for parallel computing
+        filename: Filename to be swapped in for solarsim
+        run_name: Name in the control file.
+        executable_location: Path to SolarSim to execute.
+        control: Pth to control file.
+        summary: Path to write summary file.
+        history: Path to write history file.
+        solartotals: Path to write solartotals file.
+
+    Returns:
+        None
+
+    See Also:
+        S5.SolarSim.file_swap_par : Run this function in parallel.
     """
     lock.acquire()  # block until SS readin complete (released in run_ss)
     copyfile(filename, run_name)
@@ -208,18 +249,25 @@ def file_sweep_par(
         executable_location: Union[str, PathLike] = "../SolarSim.X",
         n_jobs: int = mp.cpu_count() - (2 * (mp.cpu_count() <= 16)),
 ) -> None:
-    """sweep files by renaming each of the file in list to run_name and run ss. Block until last SS has read in.
+    """Run a sweep of SolarSim with the files specified.
+
+    Sweep files by renaming each of the file in list to `run_name` and run
+    SolarSim. Block until last the SolarSim has finish read in.
 
     Args:
         file_list: filename to be swapped in for solarsim
         run_name: name referenced in control file
-        executable_location: path to SolarSim to execute
+        executable_location: Path to SolarSim to execute.
         n_jobs: Number of SolarSims to run in parallel, if less than 16 cpu
             (non-HPC) it will default to number of cpu - 2, else it will be
             the number of cpu available.
 
     Returns:
         None
+
+    See Also:
+        S5.SolarSim.file_swap : Run this function in serial.
+        S5.SolarSim.read_file_sweep : Read the results of a file sweep.
     """
     lock = mp.Manager().Lock()
     args = []
@@ -244,11 +292,22 @@ def file_sweep(
         run_name: Union[str, PathLike],
         executable_location: Union[str, PathLike] = "../SolarSim.X",
 ) -> None:
-    """sweep files by renaming each of the file in list to run_name and run ss. Parallel version available as
-    file_sweep_par.
-    :param file_list: filename to be swapped in for solarsim
-    :param run_name: name referenced in control file
-    :param executable_location: path to SolarSim to execute
+    """Run a sweep of SolarSim with the files specified.
+
+    Sweep files by renaming each of the file in list to `run_name` and run
+    SolarSim.
+
+    Args:
+        file_list: Filenames to be swapped in for SolarSim.
+        run_name: Name referenced in control file.
+        executable_location: Path to SolarSim to execute.
+
+    Returns:
+        None
+
+    See Also:
+        S5.SolarSim.file_swap_par : Run this function in parallel.
+        S5.SolarSim.read_file_sweep : Read the results of a file sweep.
     """
     lock = mp.Manager().Lock()
     for f in file_list:
@@ -267,9 +326,15 @@ def file_sweep(
 def read_file_sweep(
         file_list: List[Union[str, PathLike]], path: Union[str, PathLike]
 ) -> pd.DataFrame:
-    """read the set of results of file_sweep, return dataframe containing key results.
-    :param file_list: list of filename that was swapped in (e.g. tvel_60.dat for History_tvel_60.dat)
-    :param path: location of the files
+    """Read the set of results of file sweep.
+
+    Args:
+        file_list: List of filename that was swapped in
+            (e.g. tvel_60.dat for History_tvel_60.dat).
+        path: Location of the files.
+
+    Returns:
+        DataFrame containing key results.
     """
     #  set up output dataframe
     result = pd.DataFrame(
