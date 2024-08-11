@@ -1,4 +1,4 @@
-"""Represents Files used in SolarSim"""
+"""Represents files used in SolarSim."""
 import io
 import logging
 import os
@@ -15,17 +15,24 @@ logger.addHandler(null_handler)
 
 
 class TecplotData:
-    """
-    Class to represent a Tecplot File
+    """Represent a Tecplot File.
+
+    Attributes:
+        title: Title of the tecplot file.
+        zone: Tecplot zone header.
+        data: Data within the file as a Pandas DataFrame.
+
+    Examples:
+        >>> motor = TecplotData("Motor.dat")
     """
 
     def __init__(self, filename=None):
-        self.title = "Title"
+        self.title: str = "Title"
         self.pressure = 0
         self.temperature = 0
         self.datum = ["Datum"]
-        self.zone = TPHeaderZone()
-        self.data = pd.DataFrame()
+        self.zone: TPHeaderZone = TPHeaderZone()
+        self.data: pd.DataFrame = pd.DataFrame()
         if filename is not None:
             self.filename = filename
             self.readfile(filename)
@@ -43,7 +50,8 @@ class TecplotData:
             self.data attribute
 
         Examples:
-            TecplotData.readfile("Velocity.dat")
+            >>> data = TecplotData()
+            >>> data.readfile("Velocity.dat")
         """
         # This will act as the base class for specific filed
         # (e.g. History, Weather, Motor)
@@ -111,17 +119,18 @@ class TecplotData:
         )
 
     def write_tecplot(self, filename, datum=False) -> None:
-        """write the TecplotData to a .dat file
+        """Write the TecplotData to a .dat file.
 
         Args:
-            filename: including extension (.dat)
+            filename: Filename including extension (.dat)
             datum: If DSW datum lines are written, default false
 
         Returns:
             None
 
         Examples:
-             >>> TecplotData.write_tecplot("Velocity.dat")
+            >>> velocity = TecplotData("Velocity.dat")
+            >>> velocity.write_tecplot("Velocity.dat")
         """
 
         if self.data is None or self.zone is None or self.data.size == 0:
@@ -149,15 +158,19 @@ class TecplotData:
             f.flush()
 
     def update_zone_1d(self):
-        """update the zone detail such that i = the size of the dataframe in self.data
+        """Update the zone detail assuming a 1d data structure.
+
+        Update the zone detail such that i = the size of the dataframe in
+        self.data.
 
         Examples:
-            >>> TecplotData.update_zone_1d()
+            >>> velocity = TecplotData("Velocity.dat")
+            >>> velocity.update_zone_1d()
         """
         self.zone.ni = self.data.shape[0]
 
     def check_zone(self) -> bool:
-        """checks the zone detail matches the dataframe
+        """Check the zone detail matches the DataFrame.
 
         This is not an exhaustive check, but just a check to make sure that the
         number of rows matchs the produce of I*J*K in the Zone line.
@@ -166,7 +179,9 @@ class TecplotData:
             True if the zone detail matches the total rows
 
         Examples:
-            >>> TecplotData.check_zone()
+            >>> velocity = TecplotData("Velocity.dat")
+            >>> if not velocity.check_zone():
+            >>>     print("Zone detail mismatch!!")
         """
         if self.zone.ni * self.zone.nj * self.zone.nk != self.data.shape[0]:
             warnings.warn("Zone detail mismatch")
@@ -184,12 +199,14 @@ class TecplotData:
 
 
 class SSWeather(TecplotData):
-    """Class that represents a SolarSim Weather file"""
+    """Represents a SolarSim Weather file."""
 
     def add_timestamp(
             self, startday: str, day: str = "Day", time: str = "Time (HHMM)"
     ) -> None:
-        """Use the 'Day' and 'Time (HHMM)' columns to create a 'DateTime'
+        """Add a DateTime column so each row have a timestamp.
+
+        Use the 'Day' and 'Time (HHMM)' columns to create a 'DateTime'
         column.
 
         Args:
@@ -198,11 +215,12 @@ class SSWeather(TecplotData):
             time: Column name for the time column, default 'Time (HHMM)'.
 
         Returns:
-            None, modifies the self.data and adds a new column named 'DateTime'.
+            None, modifies self.data and adds a new column named 'DateTime'.
 
         Examples:
-            >>> SSWeather.add_timestamp(startday='13102019')
-            >>> SSWeather.add_timestamp(startday='13102019', day = 'Day', time = 'Time (HHMM)')
+            >>> weather_file = SSWeather("Weather-2019.dat")
+            >>> weather_file.add_timestamp(startday='13102019')
+            >>> weather_file.add_timestamp(startday='13102019', day = 'Day', time = 'Time (HHMM)')
         """
         startday = pd.to_datetime(startday)
         self.data["DateTime"] = pd.to_datetime(
@@ -224,9 +242,13 @@ class SSWeather(TecplotData):
         )
 
     def add_day_time_cols(self):
-        """
-        Creates the 'Day' and 'Time' columns ina weather file when the dataframe
+        """Create the 'Day' and 'Time' columns.
+
+        Create the 'Day' and 'Time' columns in weather file when the dataframe
         is indexed by datetime.
+
+        Raises:
+            TypeError when the index is not a DatetimeIndex.
         """
         # Check if the index is a DateTime index first before using it to create
         # the dat and time columns.
@@ -239,7 +261,7 @@ class SSWeather(TecplotData):
         self.data.loc[:, "Time (HHMM)"] = self.data.index.strftime("%H%M")
 
     def check_rectangular(self):
-        """Checks if the weather file is a fully rectangular grid in space and
+        """Check if the weather file is a fully rectangular grid in space and
         time.
 
         Sometimes measurements are taken at slightly different time at each
@@ -263,7 +285,7 @@ class SSWeather(TecplotData):
 
 
 class SSHistory(TecplotData):
-    """Class that represents SolarSim History file."""
+    """Represents a SolarSim History file."""
 
     def add_timestamp(self, startday="20191013", datetime_col="DDHHMMSS"):
         """Add a timestamp column with datetime.
@@ -278,7 +300,8 @@ class SSHistory(TecplotData):
         Returns:
 
         Examples:
-            >>> SSHistory.add_timestamp(startday='13102019')
+            >>> history = SSHistory("History.dat")
+            >>> history.add_timestamp(startday='13102019')
         """
         self.data.loc[:, "Day"] = (
             self.data[datetime_col]
@@ -319,8 +342,17 @@ class TPHeaderZone:
     while init and details will be populated by regex as object attributes.
 
     >>> TPHeaderZone('Zone T = "", I = 1, J = 1, K = 1, F = POINT')
+
     This line is also the default input if no string is inputed and the
     attributed can be changed later.
+
+    Attributes:
+        zonetitle: The Zone title.
+        zonetype: The ZONETYPE parameter.
+        ni: Number of datapoints in the I direction.
+        nj: Number of datapoints in the J direction.
+        nk: Number of datapoints in the K direction.
+        F: Tecplot data packing format (`POINT`)
     """
 
     def __init__(self, zonestr='Zone T = " ", I = 1, J = 1, K = 1, F = POINT'):
@@ -361,10 +393,10 @@ class TPHeaderZone:
 
 
 class DSWinput:
-    """Class for DSW input file such as LogVolts.in or SolarSim.in.
+    """Repersent DSW input file such as LogVolts.in or SolarSim.in.
 
     Examples:
-    >>> SScontrol = DSWinput('SolarSim.in')
+        >>> control_file = DSWinput('SolarSim.in')
     """
 
     def __init__(self, filename: str = None):
@@ -385,7 +417,7 @@ class DSWinput:
             A DSWinput object representing the file that was read.
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
         """
         with open(filename) as f:
             self.lines = f.readlines()
@@ -401,8 +433,8 @@ class DSWinput:
             Value of parameter as string.
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.get_value('RoadFile')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.get_value('RoadFile')
         """
         for l in self.lines:
             l = l.strip()
@@ -425,8 +457,8 @@ class DSWinput:
             ValueError if the parameter is not in the input file.
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.set_value('RadoFile','RoadWSC.dat')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.set_value('RadoFile','RoadWSC.dat')
         """
         value = str(value)
         for i, l in enumerate(self.lines):
@@ -447,8 +479,8 @@ class DSWinput:
             None
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.write_input('SolarSim.in')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.write_input('SolarSim.in')
         """
 
         with open(filename, "w") as f:
@@ -456,7 +488,7 @@ class DSWinput:
 
     def format(self, sysformat: str) -> None:
         r"""Reformat the input file, changing path refrence to either windows
-        (\) or linux(/).
+        ``\`` or linux ``/``.
 
         Args:
             sysformat: System to format to ('lin' , 'win').
@@ -465,9 +497,9 @@ class DSWinput:
             None
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.format('lin',)
-            >>> SScontrol.format('win',)
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.format('lin')
+            >>> control_file.format('win')
         """
         sysformat = sysformat.lower()
         lines = self.lines

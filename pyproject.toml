@@ -45,6 +45,10 @@ aws = [
 forecast = [
     "solcast ~= 1.0.2",
 ]
+docs = [
+    "sphinx==7.1.2",
+    "pydata-sphinx-theme==0.14"
+]
 
 [tool.pytest.ini_options]
  	addopts = [
