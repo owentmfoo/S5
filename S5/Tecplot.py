@@ -345,6 +345,14 @@ class TPHeaderZone:
 
     This line is also the default input if no string is inputed and the
     attributed can be changed later.
+
+    Attributes:
+        zonetitle: The Zone title.
+        zonetype: The ZONETYPE parameter.
+        ni: Number of datapoints in the I direction.
+        nj: Number of datapoints in the J direction.
+        nk: Number of datapoints in the K direction.
+        F: Tecplot data packing format (`POINT`)
     """
 
     def __init__(self, zonestr='Zone T = " ", I = 1, J = 1, K = 1, F = POINT'):
