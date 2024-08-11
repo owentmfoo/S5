@@ -95,7 +95,7 @@ def win2lin(filepath: Union[str, os.PathLike]) -> None:
     r"""Convert DSW input files from windows to linux compatible.
 
     Reads the input file and overwrites the file with the correct slash
-    (from \ to /).
+    (from ``\`` to ``/``).
 
     Args:
         filepath: Path to input file.
@@ -112,7 +112,7 @@ def lin2win(filepath: Union[str, os.PathLike]) -> None:
     r"""Convert DSW input files from linus to windows compatible.
 
     Reads the input file and overwrites the file with the correct slash
-    (from \ to /).
+    (from ``/`` to ``\``).
 
     Args:
         filepath: Path to input file.

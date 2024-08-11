@@ -388,7 +388,7 @@ class DSWinput:
     """Repersent DSW input file such as LogVolts.in or SolarSim.in.
 
     Examples:
-    >>> sscontrol = DSWinput('SolarSim.in')
+        >>> control_file = DSWinput('SolarSim.in')
     """
 
     def __init__(self, filename: str = None):
@@ -409,7 +409,7 @@ class DSWinput:
             A DSWinput object representing the file that was read.
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
         """
         with open(filename) as f:
             self.lines = f.readlines()
@@ -425,8 +425,8 @@ class DSWinput:
             Value of parameter as string.
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.get_value('RoadFile')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.get_value('RoadFile')
         """
         for l in self.lines:
             l = l.strip()
@@ -449,8 +449,8 @@ class DSWinput:
             ValueError if the parameter is not in the input file.
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.set_value('RadoFile','RoadWSC.dat')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.set_value('RadoFile','RoadWSC.dat')
         """
         value = str(value)
         for i, l in enumerate(self.lines):
@@ -471,8 +471,8 @@ class DSWinput:
             None
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.write_input('SolarSim.in')
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.write_input('SolarSim.in')
         """
 
         with open(filename, "w") as f:
@@ -480,7 +480,7 @@ class DSWinput:
 
     def format(self, sysformat: str) -> None:
         r"""Reformat the input file, changing path refrence to either windows
-        (\) or linux(/).
+        ``\`` or linux ``/``.
 
         Args:
             sysformat: System to format to ('lin' , 'win').
@@ -489,9 +489,9 @@ class DSWinput:
             None
 
         Examples:
-            >>> SScontrol = DSWinput.readfile('SolarSim.in')
-            >>> SScontrol.format('lin',)
-            >>> SScontrol.format('win',)
+            >>> control_file = DSWinput.readfile('SolarSim.in')
+            >>> control_file.format('lin')
+            >>> control_file.format('win')
         """
         sysformat = sysformat.lower()
         lines = self.lines
