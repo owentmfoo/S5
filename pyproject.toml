@@ -16,7 +16,7 @@ classifiers = [
 dynamic = ["version", "description",]
 
 dependencies = [
-    "pandas >= 1.5.0",
+    "pandas[parquet] >= 1.5.0",
     "pvlib",
     "pytz",
     "matplotlib >= 3.5.0",
@@ -24,6 +24,7 @@ dependencies = [
     "numpy >= 1.20.3, < 2",
     "pytest >= 7.1.1",
     "setuptools >= 58.0.4",
+    "pyarrow = >=8.0.0",
 ]
 
 
@@ -46,17 +47,17 @@ forecast = [
 ]
 docs = [
     "sphinx==7.1.2",
-    "pydata-sphinx-theme==0.14"
+    "pydata-sphinx-theme==0.14",
 ]
 
 [tool.pytest.ini_options]
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "-ra"
-]
+ 	addopts = [
+	    "--strict-markers",
+ 	   "--strict-config",
+        "-ra",
+ 	    ]
 
-testpaths = "S5"
+ 	testpaths = "S5"
 
 markers = [
     "smoke: subset of tests",
