@@ -18,4 +18,4 @@ jobs:
         uses: sphinx-notes/pages@v3
         with:
           documentation_path: ./docs/source
-          pyproject_extras: docs,aws
+          pyproject_extras: docs,aws,test,grib,forecast
