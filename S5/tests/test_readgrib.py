@@ -42,13 +42,13 @@ def test_calculate_wind():
     weather['u10'] = [0, 1, 0, 1]
     weather['v10'] = [0, 0, 1, 1]
     weather = readgrib._calculate_wind(weather)
-    assert weather['10m WindVel (m/s)'].iloc[0] == 0
-    assert weather['10m WindVel (m/s)'].iloc[1] == 1
-    assert weather['10m WindVel (m/s)'].iloc[2] == 1
-    assert np.isclose(weather['10m WindVel (m/s)'].iloc[3], np.sqrt(2))
-    assert weather['WindDir (deg)'].iloc[1] == 270
-    assert weather['WindDir (deg)'].iloc[2] == 0
-    assert weather['WindDir (deg)'].iloc[3] == 315
+    assert weather['10m WindVel(m/s)'].iloc[0] == 0
+    assert weather['10m WindVel(m/s)'].iloc[1] == 1
+    assert weather['10m WindVel(m/s)'].iloc[2] == 1
+    assert np.isclose(weather['10m WindVel(m/s)'].iloc[3], np.sqrt(2))
+    assert weather['WindDir(deg)'].iloc[1] == 270
+    assert weather['WindDir(deg)'].iloc[2] == 0
+    assert weather['WindDir(deg)'].iloc[3] == 315
 
 
 @pytest.fixture()
@@ -124,4 +124,4 @@ def test_from_era5_no_solar(mock_extract_df, tmp_path, grib_df, road_file, monke
     readgrib.from_era5(STATION_FILE, GRIB_FILE, START_DATE, END_DATE, outfile=tmp_path / r'Weather-era5byS5-tmp.dat',
                        Solar=False)
     tp = TP.SSWeather(tmp_path / r'Weather-era5byS5-tmp.dat')
-    assert (tp.data[["DirectSun (W/m2)", "DiffuseSun (W/m2)"]] == 0).all().all()
+    assert (tp.data[["DirectSun(W/m2)", "DiffuseSun(W/m2)"]] == 0).all().all()

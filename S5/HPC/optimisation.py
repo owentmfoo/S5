@@ -41,7 +41,7 @@ def set_mean(vel, v_bar, x, n, clip=None):
     #     if "road" in clip:
     #         roadfile = clip["road"]
     #         roadTP = TP.Tecplot(roadfile)
-    #         roadTP.data.set_index("Distance (km)",inplace=True)
+    #         roadTP.data.set_index("Distance(km)",inplace=True)
     #         velDF = None
     #
     else:

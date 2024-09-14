@@ -53,15 +53,15 @@ def plot_contor(
         >>> weather = TP.SSWeather("C:/path/to/Weather.dat")
         >>> weather.add_timestamp('20231023')
         >>> plot_contor(
-        >>>     "DirectSun (W/m2)",
+        >>>     "DirectSun(W/m2)",
         >>>     weather,
-        >>>     display_name="Direct Irradiation (W/m²)",
+        >>>     display_name="Direct Irradiation(W/m²)",
         >>>     cmap="inferno",
         >>>     ax=ax[0],
         >>> )
     """
     cont = weather.data.loc[:, [contour_parameter]].to_numpy()
-    dist = np.unique(weather.data.loc[:, ["Distance (km)"]].to_numpy())
+    dist = np.unique(weather.data.loc[:, ["Distance(km)"]].to_numpy())
     date_time = np.unique(weather.data.loc[:, ["DateTime"]].to_numpy())
 
     date_timenum, dist = np.meshgrid(dates.date2num(date_time), dist)
@@ -82,7 +82,7 @@ def plot_contor(
     # Format the figure
     ax.set_title(display_name)
     ax.set_xlim([0, 3030])
-    ax.set_xlabel("Distance (km)")
+    ax.set_xlabel("Distance(km)")
     ax.set_ylabel("Time")
     return fig, ax
 
@@ -115,9 +115,9 @@ def plot_trace(
         >>> history.add_timestamp('20231023')
         >>> weather.add_timestamp('20231023')
         >>> plot_contor(
-        >>>     "DirectSun (W/m2)",
+        >>>     "DirectSun(W/m2)",
         >>>     weather,
-        >>>     display_name="Direct Irradiation (W/m²)",
+        >>>     display_name="Direct Irradiation(W/m²)",
         >>>     cmap="inferno",
         >>>     ax=ax[0],
         >>> )

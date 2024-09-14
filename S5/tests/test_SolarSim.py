@@ -96,7 +96,8 @@ def test_const_vel(tmp_path, mock_Popen):
 
     os.chdir(original_dir)
     vel = TP.TecplotData(tmp_path / "TargetVel.dat")
-    correct_df = pd.DataFrame([[0, t_vel], [3030, t_vel]], columns=['Distance (km)', 'TargetVel (km/h)'])
+    correct_df = pd.DataFrame([[0, t_vel], [3030, t_vel]],
+                              columns=['Distance(km)', 'TargetVel(km/h)'])
     assert_frame_equal(vel.data, correct_df, check_dtype=False)
     assert vel.zone.ni == 2
 

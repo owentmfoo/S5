@@ -1,29 +1,31 @@
-import random
+import os
 
 import pandas as pd
-import pytest
-from S5.HPC.file_io import *
-import S5.Tecplot as TP
 from pandas.testing import assert_frame_equal
-import pandas as pd
-import os
+
+import S5.Tecplot as TP
+from S5.HPC.file_io import *
+
 
 def test_write_vel_int(tmp_path):
     write_vel(70,tmp_path/"TargetVel.dat")
     vel = TP.TecplotData(tmp_path/"TargetVel.dat")
-    correct_df = pd.DataFrame([[0,70],[3030,70]],columns=['Distance (km)', 'TargetVel (km/h)'])
+    correct_df = pd.DataFrame([[0, 70], [3030, 70]],
+                              columns=['Distance(km)', 'TargetVel(km/h)'])
     assert_frame_equal(vel.data,correct_df,check_dtype=False)
     assert vel.zone.ni == 2
 
 def test_write_vel_float(tmp_path):
     write_vel(70.0,tmp_path/"TargetVel.dat")
     vel = TP.TecplotData(tmp_path/"TargetVel.dat")
-    correct_df = pd.DataFrame([[0,70],[3030,70]],columns=['Distance (km)', 'TargetVel (km/h)'])
+    correct_df = pd.DataFrame([[0, 70], [3030, 70]],
+                              columns=['Distance(km)', 'TargetVel(km/h)'])
     assert_frame_equal(vel.data,correct_df,check_dtype=False)
     assert vel.zone.ni == 2
 
 def test_write_vel_pandas(tmp_path):
-    correct_df = pd.DataFrame([[0, 70], [3030, 70]], columns=['Distance (km)', 'TargetVel (km/h)'])
+    correct_df = pd.DataFrame([[0, 70], [3030, 70]],
+                              columns=['Distance(km)', 'TargetVel(km/h)'])
     write_vel(correct_df, tmp_path / "TargetVel.dat")
     vel = TP.TecplotData(tmp_path / "TargetVel.dat")
     assert_frame_equal(vel.data, correct_df, check_dtype=False)
@@ -34,7 +36,8 @@ def test_write_vel_default_name(tmp_path,request):
     write_vel(70)
     os.chdir(request.config.invocation_dir)
     vel = TP.TecplotData(tmp_path / "TargetVel.dat")
-    correct_df = pd.DataFrame([[0, 70], [3030, 70]], columns=['Distance (km)', 'TargetVel (km/h)'])
+    correct_df = pd.DataFrame([[0, 70], [3030, 70]],
+                              columns=['Distance(km)', 'TargetVel(km/h)'])
     assert_frame_equal(vel.data, correct_df, check_dtype=False)
     assert vel.zone.ni == 2
 
@@ -68,7 +71,7 @@ def test_history_summary_avgvel(history_file,tmp_path):
 def test_adjust_v(velocity_file):
     vel = TP.TecplotData(velocity_file)
     adjust_v(vel, 50)
-    assert vel.data['TargetVel (km/h)'].mean() == 50
+    assert vel.data['TargetVel(km/h)'].mean() == 50
 
 
 

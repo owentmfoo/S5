@@ -202,11 +202,11 @@ class SSWeather(TecplotData):
     """Represents a SolarSim Weather file."""
 
     def add_timestamp(
-            self, startday: str, day: str = "Day", time: str = "Time (HHMM)"
+            self, startday: str, day: str = "Day", time: str = "Time(HHMM)"
     ) -> None:
         """Add a DateTime column so each row have a timestamp.
 
-        Use the 'Day' and 'Time (HHMM)' columns to create a 'DateTime'
+        Use the 'Day' and 'Time(HHMM)' columns to create a 'DateTime'
         column.
 
         Args:
@@ -220,7 +220,7 @@ class SSWeather(TecplotData):
         Examples:
             >>> weather_file = SSWeather("Weather-2019.dat")
             >>> weather_file.add_timestamp(startday='13102019')
-            >>> weather_file.add_timestamp(startday='13102019', day = 'Day', time = 'Time (HHMM)')
+            >>> weather_file.add_timestamp(startday='13102019', day = 'Day', time = 'Time(HHMM)')
         """
         startday = pd.to_datetime(startday)
         self.data["DateTime"] = pd.to_datetime(
@@ -258,7 +258,7 @@ class SSWeather(TecplotData):
         self.data.loc[:, "Day"] = [
             i.days + 1 for i in (self.data.index.date - self.data.index.date[0])
         ]
-        self.data.loc[:, "Time (HHMM)"] = self.data.index.strftime("%H%M")
+        self.data.loc[:, "Time(HHMM)"] = self.data.index.strftime("%H%M")
 
     def check_rectangular(self):
         """Check if the weather file is a fully rectangular grid in space and
@@ -272,12 +272,12 @@ class SSWeather(TecplotData):
         location, there are double the amount of unique DateTime in the file,
         messing up the j index value in the zone data.
         """
-        if self.zone.nj != self.data["Distance (km)"].nunique():
+        if self.zone.nj != self.data["Distance(km)"].nunique():
             warnings.warn("Zone data nj (Distance) mismatch.")
         if (
                 self.zone.ni
                 != (
-                self.data["Time (HHMM)"].astype(str)
+                self.data["Time(HHMM)"].astype(str)
                 + self.data["Day"].astype(str)
         ).nunique()
         ):
