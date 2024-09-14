@@ -79,4 +79,3 @@ omit = [
     "S5/tests/*",
     "S5/visualisation/*",
 ]
-
