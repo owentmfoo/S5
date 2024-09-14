@@ -1,6 +1,6 @@
 """Script to compile Weather Files from Solcast.
 
-Requires the CSVs from SolCast and a "road file" with columns ['Distance (km)', 'Latitude', 'Longitude'] to maps
+Requires the CSVs from SolCast and a "road file" with columns ['Distance(km)', 'Latitude', 'Longitude'] to maps
 the CSVs to distances along the route. The Road file can have extra points but each CSV file have to have a point
 specified in the Road file or else a warning will be raised and the row that does not have data in the road file
 will be omitted.
@@ -38,7 +38,7 @@ def main(start_date: datetime.datetime, end_date: datetime.datetime, RoadFile: U
          csv_location: [str, os.PathLike], output_file: [str, os.PathLike] = 'Weather-SolCast-temp.dat') -> None:
     r"""Creates a SolarSim weather file from solcast historic CSVs.
 
-    Requires the CSVs from SolCast and a "road file" with columns ['Distance (km)', 'Latitude', 'Longitude'] to maps
+    Requires the CSVs from SolCast and a "road file" with columns ['Distance(km)', 'Latitude', 'Longitude'] to maps
     the CSVs to distances along the route. The Road file can have extra points but each CSV file have to have a point
     specified in the Road file or else a warning will be raised and the row that does not have data in the road file
     will be omitted.
@@ -49,7 +49,7 @@ def main(start_date: datetime.datetime, end_date: datetime.datetime, RoadFile: U
         start_date: The start date and time for the output file with timezone info.
         end_date: The end date and time for the output file with timezone info.
         RoadFile: Path the the road file used to map the CSVs to distance along the route. Must have the following
-            columns: ['Distance (km)', 'Latitude', 'Longitude']
+            columns: ['Distance(km)', 'Latitude', 'Longitude']
         csv_location: Path to the parent folder that contains all the CSVs, the CSVs can be stored in subfolders in
             this location.
         output_file: Path and name to write the output weather file. Example: 'output\Weather-Solcast-20221217.dat'
@@ -71,14 +71,14 @@ def main(start_date: datetime.datetime, end_date: datetime.datetime, RoadFile: U
     # Read the solcast csv for each spot along the route and add it to the output weather file.
     for i in trange(0, infile.shape[0]):
         csvname = infile.loc[i, 'File Name']
-        distance = infile.loc[i, 'Distance (km)']
+        distance = infile.loc[i, 'Distance(km)']
         df = read_solcast_csv(csvname, distance, start_date, end_date)
         if i == 0:
             WeatherTP.data = df
         else:
             WeatherTP.data = pd.concat([WeatherTP.data, df])
 
-    WeatherTP.data.sort_values(by=['Distance (km)', 'DateTime'], inplace=True)
+    WeatherTP.data.sort_values(by=['Distance(km)', 'DateTime'], inplace=True)
     if start_date.tzinfo != end_date.tzinfo:
         warnings.warn(
             'Starting and ending time zone mismatch, using starting timezone as output timezone.')
@@ -90,17 +90,21 @@ def main(start_date: datetime.datetime, end_date: datetime.datetime, RoadFile: U
     #  and time. Measurements are taken at slightly different time at each station.
     #  For example: 3 minute past the hour at Darwin but 6 minute past the hour at Coober Pedy.
     #  !!!This will NOT work if the measurements are not at 10 min intervals.!!!
-    WeatherTP.data.loc[:, 'Time (HHMM)'] = WeatherTP.data.loc[:, 'Time (HHMM)'].astype(str).str[:-1] + str(
-        int(np.mean(WeatherTP.data.loc[:, 'Time (HHMM)'].astype(str).str[-1].astype(int))))
+    WeatherTP.data.loc[:, 'Time(HHMM)'] = WeatherTP.data.loc[:, 'Time(HHMM)'].astype(
+        str).str[:-1] + str(
+        int(np.mean(
+            WeatherTP.data.loc[:, 'Time(HHMM)'].astype(str).str[-1].astype(int))))
 
     WeatherTP.data.reset_index(inplace=True)
     WeatherTP.data.drop(columns='DateTime', inplace=True)
-    WeatherTP.zone.nj = WeatherTP.data.loc[:, 'Distance (km)'].nunique()
+    WeatherTP.zone.nj = WeatherTP.data.loc[:, 'Distance(km)'].nunique()
     WeatherTP.zone.ni = WeatherTP.data.iloc[:, 0].count() / WeatherTP.zone.nj
 
     WeatherTP.data = WeatherTP.data[
-        ['Day', 'Time (HHMM)', 'Distance (km)', 'DirectSun (W/m2)', 'DiffuseSun (W/m2)', 'SunAzimuth (deg)',
-         'SunElevation (deg)', 'AirTemp (degC)', 'AirPress (Pa)', 'WindVel (m/s)', 'WindDir (deg)']]
+        ['Day', 'Time(HHMM)', 'Distance(km)', 'DirectSun(W/m2)', 'DiffuseSun(W/m2)',
+         'SunAzimuth(deg)',
+         'SunElevation(deg)', 'AirTemp(degC)', 'AirPress(Pa)', 'WindVel(m/s)',
+         'WindDir(deg)']]
 
     WeatherTP.check_rectangular()
     WeatherTP.write_tecplot(output_file)
@@ -118,13 +122,13 @@ def map_files(RoadFile: Union[str, os.PathLike], files: Iterable[Union[str, os.P
         files: List of path to the CSVs.
 
     Returns:
-        A pandas Dataframe with columns ['File Name', 'Latitude', 'Longitude', 'Distance (km)'] with each row
+        A pandas Dataframe with columns ['File Name', 'Latitude', 'Longitude', 'Distance(km)'] with each row
         corresponding to a CSV.
 
     """
     # Read the Road file and check if it got the right columns.
     RoadTP = TP.TecplotData(RoadFile)
-    for col_name in ['Distance (km)', 'Latitude', 'Longitude']:
+    for col_name in ['Distance(km)', 'Latitude', 'Longitude']:
         if col_name not in RoadTP.data.columns:
             raise IndexError(f'{col_name} is missing from Road file {RoadFile}')
 
@@ -135,14 +139,14 @@ def map_files(RoadFile: Union[str, os.PathLike], files: Iterable[Union[str, os.P
         extract(r'(.*)_(.*)_Solcast.*').astype('float64').to_numpy()
 
     # merge the road dataframe and the file dataframe to create the mapping.
-    mapped_df = filenames.merge(RoadTP.data[['Distance (km)', 'Latitude', 'Longitude']],
+    mapped_df = filenames.merge(RoadTP.data[['Distance(km)', 'Latitude', 'Longitude']],
                                 left_on=['Latitude', 'Longitude'],
                                 right_on=['Latitude', 'Longitude'], validate="1:1", how='left')
-    if mapped_df['Distance (km)'].isna().sum() != 0:
+    if mapped_df['Distance(km)'].isna().sum() != 0:
         # the dataframe total of isna is not 0 means that there are lines that are not mapped.
-        missing_points = mapped_df[mapped_df['Distance (km)'].isna()]
+        missing_points = mapped_df[mapped_df['Distance(km)'].isna()]
         warnings.warn(
-            f"There are {mapped_df['Distance (km)'].isna().sum()} point(s) omitted in the output as they are missing in"
+            f"There are {mapped_df['Distance(km)'].isna().sum()} point(s) omitted in the output as they are missing in"
             f" the road file.\nThe file with missing point(s) are {missing_points['File Name'].to_list()}"
         )
         mapped_df.dropna(axis=0, inplace=True)
@@ -187,12 +191,12 @@ def read_solcast_csv(filename: Union[str, PathLike], distance: float, start_date
         start_date: start time in local time with timezone
         end_date: end time in local time with timezone
 
-    Returns: A formatted pandas dataframe with columns ['Distance (km)', 'DirectSun (W/m2)', 'DiffuseSun (W/m2)',
-        'SunAzimuth (deg)', 'SunElevation (deg)', 'AirTemp (degC)', 'AirPress (Pa)', 'WindVel (m/s)', 'WindDir (deg)']
+    Returns: A formatted pandas dataframe with columns ['Distance(km)', 'DirectSun(W/m2)', 'DiffuseSun(W/m2)',
+        'SunAzimuth(deg)', 'SunElevation(deg)', 'AirTemp(degC)', 'AirPress(Pa)', 'WindVel(m/s)', 'WindDir(deg)']
     """
     # read the csv and set it to the distance along the route
     df = pd.read_csv(filename)
-    df.loc[:, 'Distance (km)'] = distance
+    df.loc[:, 'Distance(km)'] = distance
 
     # convert the data type of the datetime columns. Decoded not to rename the PeriodStart column to leave flexibility
     # in the future if we want to say the samples corresponds to the middle of the period
@@ -202,24 +206,26 @@ def read_solcast_csv(filename: Union[str, PathLike], distance: float, start_date
     df.drop(columns=['PeriodEnd', 'PeriodStart'], inplace=True)
 
     # rename the columns
-    df.rename(columns={'Dni': 'DirectSun (W/m2)', 'Dhi': 'DiffuseSun (W/m2)', 'AirTemp': 'AirTemp (degC)',
-                       'SurfacePressure': 'AirPress (hPa)', 'WindSpeed10m': '10m WindVel (m/s)',
-                       'WindDirection10m': 'WindDir (deg)',
-                       'Azimuth': 'SunAzimuth (deg)'}, inplace=True)
+    df.rename(columns={'Dni': 'DirectSun(W/m2)', 'Dhi': 'DiffuseSun(W/m2)',
+                       'AirTemp': 'AirTemp(degC)',
+                       'SurfacePressure': 'AirPress(hPa)',
+                       'WindSpeed10m': '10m WindVel(m/s)',
+                       'WindDirection10m': 'WindDir(deg)',
+                       'Azimuth': 'SunAzimuth(deg)'}, inplace=True)
     # convert values into those used by SolarSim
-    df.loc[:, 'WindVel (m/s)'] = convert_wind(df.loc[:, '10m WindVel (m/s)'])
-    df.loc[:, 'SunElevation (deg)'] = 90 - df['Zenith']
-    df.loc[:, 'SunAzimuth (deg)'] = df.loc[:, 'SunAzimuth (deg)'] * -1
-    df.loc[:, 'AirPress (Pa)'] = df.loc[:, 'AirPress (hPa)'] * 100
+    df.loc[:, 'WindVel(m/s)'] = convert_wind(df.loc[:, '10m WindVel(m/s)'])
+    df.loc[:, 'SunElevation(deg)'] = 90 - df['Zenith']
+    df.loc[:, 'SunAzimuth(deg)'] = df.loc[:, 'SunAzimuth(deg)'] * -1
+    df.loc[:, 'AirPress(Pa)'] = df.loc[:, 'AirPress(hPa)'] * 100
 
     # as the csv are in UTC, localize timezone before slicing the portion of data that we want.
     df.set_index('DateTime', inplace=True)
     df = df.loc[start_date:end_date, :].copy()
 
     # return only the columns that we are interested in.
-    df = df[['Distance (km)', 'DirectSun (W/m2)', 'DiffuseSun (W/m2)', 'SunAzimuth (deg)',
-             'SunElevation (deg)', 'AirTemp (degC)', 'AirPress (Pa)', 'WindVel (m/s)',
-             'WindDir (deg)']].copy()
+    df = df[['Distance(km)', 'DirectSun(W/m2)', 'DiffuseSun(W/m2)', 'SunAzimuth(deg)',
+             'SunElevation(deg)', 'AirTemp(degC)', 'AirPress(Pa)', 'WindVel(m/s)',
+             'WindDir(deg)']].copy()
     return df
 
 
