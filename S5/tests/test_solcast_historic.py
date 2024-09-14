@@ -35,10 +35,12 @@ def test_read_solcast_csv(solcast_hist_csv):
     end_date = datetime.datetime(2018, 12, 31, 0, 40, tzinfo=tz)
     df = solcast_historic.read_solcast_csv(solcast_hist_csv, distance, start_date, end_date)
     assert df.shape[0] == 3
-    assert df['Distance (km)'][0] == distance
-    correct_col_list = ['Distance (km)', 'DirectSun (W/m2)', 'DiffuseSun (W/m2)', 'SunAzimuth (deg)',
-                        'SunElevation (deg)', 'AirTemp (degC)', 'AirPress (Pa)', 'WindVel (m/s)',
-                        'WindDir (deg)']
+    assert df['Distance(km)'][0] == distance
+    correct_col_list = ['Distance(km)', 'DirectSun(W/m2)', 'DiffuseSun(W/m2)',
+                        'SunAzimuth(deg)',
+                        'SunElevation(deg)', 'AirTemp(degC)', 'AirPress(Pa)',
+                        'WindVel(m/s)',
+                        'WindDir(deg)']
     for col_name in correct_col_list:
         assert col_name in df.columns
 
@@ -87,13 +89,15 @@ def mock_read_solcast_csv():
                               end_date: datetime.datetime):
         end_date = end_date.astimezone(start_date.tzinfo)
         patch_spot_df = pd.DataFrame(
-            columns=['Distance (km)', 'DirectSun (W/m2)', 'DiffuseSun (W/m2)', 'SunAzimuth (deg)',
-                     'SunElevation (deg)', 'AirTemp (degC)', 'AirPress (Pa)', 'WindVel (m/s)',
-                     'WindDir (deg)'],
+            columns=['Distance(km)', 'DirectSun(W/m2)', 'DiffuseSun(W/m2)',
+                     'SunAzimuth(deg)',
+                     'SunElevation(deg)', 'AirTemp(degC)', 'AirPress(Pa)',
+                     'WindVel(m/s)',
+                     'WindDir(deg)'],
             index=pd.date_range(start_date, end_date, periods=6),
         )
         patch_spot_df.fillna(0, inplace=True)
-        patch_spot_df.loc[:, 'Distance (km)'] = distance
+        patch_spot_df.loc[:, 'Distance(km)'] = distance
         patch_spot_df.loc[:, 'DateTime'] = patch_spot_df.index
         return patch_spot_df
 
@@ -123,7 +127,7 @@ def test_main(road_file, monkeypatch, tmpdir, mock_read_solcast_csv):
                           output_file=tmpdir / 'Weather-SolCast-temp.dat')
 
     WeatherTP = TP.SSWeather(tmpdir / 'Weather-SolCast-temp.dat')
-    assert WeatherTP.data['Distance (km)'].nunique() == 5
+    assert WeatherTP.data['Distance(km)'].nunique() == 5
     WeatherTP.add_timestamp(startday='20191013')
     assert WeatherTP.data['DateTime'].nunique() == 6
 
@@ -153,10 +157,10 @@ def test_main_mismatch_timezone(road_file, monkeypatch, tmpdir, mock_read_solcas
                               output_file=tmpdir / 'Weather-SolCast-temp.dat')
 
     WeatherTP = TP.SSWeather(tmpdir / 'Weather-SolCast-temp.dat')
-    assert WeatherTP.data.loc[0, 'Time (HHMM)'] == 600
+    assert WeatherTP.data.loc[0, 'Time(HHMM)'] == 600
 
 
-@pytest.mark.parametrize('col', ['Distance (km)', 'Latitude', 'Longitude'])
+@pytest.mark.parametrize('col', ['Distance(km)', 'Latitude', 'Longitude'])
 def test_map_files_missing_col(road_file, col, tmpdir):
     RoadTP = TP.TecplotData(road_file)
     RoadTP.data.loc[:, 'File Name'] = RoadTP.data['Latitude'].astype(str) + '_' + RoadTP.data['Longitude'].astype(
@@ -178,7 +182,8 @@ def test_map_files(road_file):
 
     # check if the mapping worked
     output_df = solcast_historic.map_files(road_file, file_names)
-    pd.testing.assert_frame_equal(RoadTP.data[['File Name', 'Latitude', 'Longitude', 'Distance (km)']], output_df)
+    pd.testing.assert_frame_equal(
+        RoadTP.data[['File Name', 'Latitude', 'Longitude', 'Distance(km)']], output_df)
     # check if having extra rows in the road file is fine
     solcast_historic.map_files(road_file, file_names[:-1])
 
