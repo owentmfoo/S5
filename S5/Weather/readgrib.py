@@ -8,16 +8,18 @@ diffuse irradiance it might only be useful for generating EV weather files where
 See Also:
     S5.Weather.solcast_historic for historic data with direct and diffuse irradiation.
 """
+import datetime
 import os
 import warnings
-import datetime
 from typing import Union
-import xarray as xr
-import pandas as pd
+
 import numpy as np
-from pvlib import solarposition
+import pandas as pd
 import pytz.tzinfo
+import xarray as xr
+from pvlib import solarposition
 from tqdm import trange
+
 import S5.Tecplot as TP
 from S5.Weather import convert_wind
 
@@ -95,18 +97,18 @@ def era5_spot(dataset: xr.Dataset, start_date: datetime.datetime = None, end_dat
         return None
 
     weather = pd.DataFrame(index=df.index)
-    weather["Distance (km)"] = distance
+    weather["Distance(km)"] = distance
 
     df = _calculate_wind(df)
-    weather[["10m WindVel (m/s)", "WindVel (m/s)", "WindDir (deg)"]] = df[
-        ["10m WindVel (m/s)", "WindVel (m/s)", "WindDir (deg)"]]
-    weather.loc[:, "AirPress (Pa)"] = df['sp']
-    weather.loc[:, "AirTemp (degC)"] = df['t2m'] - 273.15  # convert from k to degC
+    weather[["10m WindVel(m/s)", "WindVel(m/s)", "WindDir(deg)"]] = df[
+        ["10m WindVel(m/s)", "WindVel(m/s)", "WindDir(deg)"]]
+    weather.loc[:, "AirPress(Pa)"] = df['sp']
+    weather.loc[:, "AirTemp(degC)"] = df['t2m'] - 273.15  # convert from k to degC
 
     solpos = solarposition.get_solarposition(weather.index, latitude, longitude, elevation)
     solpos.loc[:, 'azimuth'] = solpos['azimuth'].apply(lambda x: x if x < 180 else x - 360)
-    weather.loc[:, "SunAzimuth (deg)"] = solpos['azimuth']
-    weather.loc[:, "SunElevation (deg)"] = solpos['apparent_elevation']
+    weather.loc[:, "SunAzimuth(deg)"] = solpos['azimuth']
+    weather.loc[:, "SunElevation(deg)"] = solpos['apparent_elevation']
 
     # convert cumulative sum to hourly total
     cum_ssr = df['ssr'].to_numpy()
@@ -135,11 +137,12 @@ def _calculate_wind(df: pd.DataFrame) -> pd.DataFrame:
         df: Pandas Dataframe with the columns 'v10' and 'u10'.
 
     Returns:
-        Pandas Dataframe with columns "10m WindVel (m/s)", "WindVel (m/s)", "WindDir (deg)".
+        Pandas Dataframe with columns "10m WindVel(m/s)", "WindVel(m/s)", "WindDir(deg)".
     """
-    df.loc[:, "10m WindVel (m/s)"] = (df['u10'] ** 2 + df['v10'] ** 2) ** 0.5
-    df.loc[:, "WindDir (deg)"] = np.mod(np.rad2deg(-np.arctan2(df['v10'], -df['u10'])) + 90, 360)
-    df.loc[:, "WindVel (m/s)"] = convert_wind(df.loc[:, '10m WindVel (m/s)'])
+    df.loc[:, "10m WindVel(m/s)"] = (df['u10'] ** 2 + df['v10'] ** 2) ** 0.5
+    df.loc[:, "WindDir(deg)"] = np.mod(
+        np.rad2deg(-np.arctan2(df['v10'], -df['u10'])) + 90, 360)
+    df.loc[:, "WindVel(m/s)"] = convert_wind(df.loc[:, '10m WindVel(m/s)'])
     return df
 
 
@@ -176,12 +179,12 @@ def ssr_to_direct_and_diffuse(weather: pd.DataFrame) -> pd.DataFrame:
     Returns:
         This function modifies the original dataframe but also returns a copy of the modified dataframe.
     """
-    weather.loc[:, "DirectSun_uncorrected (W/m2)"] = weather["ssr"] / 3600
-    # weather.loc[:, "correction"] = abs(np.sin(np.deg2rad(weather.loc[:, "SunElevation (deg)"])))
-    # weather.loc[:, "DirectSun_corrected (W/m2)"] = weather.loc[:, "DirectSun_uncorrected (W/m2)"] / \
+    weather.loc[:, "DirectSun_uncorrected(W/m2)"] = weather["ssr"] / 3600
+    # weather.loc[:, "correction"] = abs(np.sin(np.deg2rad(weather.loc[:, "SunElevation(deg)"])))
+    # weather.loc[:, "DirectSun_corrected(W/m2)"] = weather.loc[:, "DirectSun_uncorrected(W/m2)"] / \
     #                                      weather.loc[:, "correction"]
-    weather.loc[:, "DirectSun (W/m2)"] = weather.loc[:, "DirectSun_uncorrected (W/m2)"]
-    weather.loc[:, "DiffuseSun (W/m2)"] = 0
+    weather.loc[:, "DirectSun(W/m2)"] = weather.loc[:, "DirectSun_uncorrected(W/m2)"]
+    weather.loc[:, "DiffuseSun(W/m2)"] = 0
     return weather.copy()
 
 
@@ -228,7 +231,7 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
     WeatherTP = TP.SSWeather()
 
     station = TP.TecplotData(stationfile)
-    for col_name in ['Distance (km)', 'Latitude', 'Longitude', 'Altitude (m)']:
+    for col_name in ['Distance(km)', 'Latitude', 'Longitude', 'Altitude(m)']:
         if col_name not in station.data.columns:
             raise IndexError(f'{col_name} is missing from Road file {station}')
     # assert dtype
@@ -237,8 +240,8 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
     for i in trange(station.zone.ni):
         latitude = station.data.loc[i, 'Latitude']
         longitude = station.data.loc[i, 'Longitude']
-        elevation = station.data.loc[i, 'Altitude (m)']
-        distance = station.data.loc[i, 'Distance (km)']
+        elevation = station.data.loc[i, 'Altitude(m)']
+        distance = station.data.loc[i, 'Distance(km)']
         weather = era5_spot(ds, start_date=start_date, end_date=end_date, latitude=latitude, longitude=longitude,
                             elevation=elevation, distance=distance)
         if weather is None:
@@ -249,18 +252,19 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
 
     if not Solar:
         print('Disabling solar output.')
-        WeatherTP.data.loc[:, ["DirectSun (W/m2)", "DiffuseSun (W/m2)"]] = 0
+        WeatherTP.data.loc[:, ["DirectSun(W/m2)", "DiffuseSun(W/m2)"]] = 0
 
-    if WeatherTP.data['Distance (km)'].min() != 0:
+    if WeatherTP.data['Distance(km)'].min() != 0:
         print('Data missing for starting point, backfilling from first point in space.')
-        Start = WeatherTP.data[WeatherTP.data['Distance (km)'] == WeatherTP.data['Distance (km)'].min()]
-        Start.loc[:, 'Distance (km)'] = 0
+        Start = WeatherTP.data[
+            WeatherTP.data['Distance(km)'] == WeatherTP.data['Distance(km)'].min()]
+        Start.loc[:, 'Distance(km)'] = 0
         WeatherTP.data = pd.concat([Start, WeatherTP.data], axis='index')
 
-    WeatherTP.data.sort_values(by=['Distance (km)', 'DateTime'], inplace=True)
+    WeatherTP.data.sort_values(by=['Distance(km)', 'DateTime'], inplace=True)
     WeatherTP.add_day_time_cols()
     WeatherTP.zone = TP.TPHeaderZone()
-    WeatherTP.zone.nj = WeatherTP.data.loc[:, 'Distance (km)'].nunique()
+    WeatherTP.zone.nj = WeatherTP.data.loc[:, 'Distance(km)'].nunique()
     WeatherTP.zone.ni = WeatherTP.data.iloc[:, 0].count() / WeatherTP.zone.nj
     WeatherTP.zone.zonetitle = "S5Weather"
     WeatherTP.title = "Weather file generated by S5.from_era5"
@@ -268,9 +272,11 @@ def from_era5(stationfile: Union[str, os.PathLike], gribfile: Union[str, os.Path
     # TODO: use __debug__ instad?
     if not debug:
         WeatherTP.data = WeatherTP.data.loc[:,
-                         ["Day", "Time (HHMM)", "Distance (km)", "DirectSun (W/m2)", "DiffuseSun (W/m2)",
-                          "SunAzimuth (deg)",
-                          "SunElevation (deg)", "AirTemp (degC)", "AirPress (Pa)", "WindVel (m/s)", "WindDir (deg)"]]
+                         ["Day", "Time(HHMM)", "Distance(km)", "DirectSun(W/m2)",
+                          "DiffuseSun(W/m2)",
+                          "SunAzimuth(deg)",
+                          "SunElevation(deg)", "AirTemp(degC)", "AirPress(Pa)",
+                          "WindVel(m/s)", "WindDir(deg)"]]
 
     WeatherTP.check_rectangular()
     WeatherTP.write_tecplot(outfile)
