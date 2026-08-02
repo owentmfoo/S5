@@ -31,7 +31,7 @@ def test_set_mean_clip_kph_lin():
     y = x.copy()
     y[random.randint(0, 100)] = 100
     z = set_mean(y, 70, x, 8, 'kph')
-    assert np.trapz(z, x) / (x.max() - x.min()) == approx(70)
+    assert np.trapezoid(z, x) / (x.max() - x.min()) == approx(70)
     assert z.max() == approx(130)
 
 
@@ -42,7 +42,7 @@ def test_set_mean_clip_kph():
     z = set_mean(y, v_bar, x, 8, 'kph')
     assert z.max() == approx(130)
     assert z.min() == approx(10)
-    assert np.trapz(z, x) / (x.max() - x.min()) == approx(v_bar)
+    assert np.trapezoid(z, x) / (x.max() - x.min()) == approx(v_bar)
 
 
 def test_set_mean_clip_ms():
@@ -52,7 +52,7 @@ def test_set_mean_clip_ms():
     z = set_mean(y, v_bar, x, 8, 'ms')
     assert z.max() == approx(130 / 3.6)
     assert z.min() == approx(10 / 3.6)
-    assert np.trapz(z, x) / (x.max() - x.min()) == approx(v_bar)
+    assert np.trapezoid(z, x) / (x.max() - x.min()) == approx(v_bar)
 
 
 def test_calc_strat_zero():
