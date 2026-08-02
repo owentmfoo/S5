@@ -26,7 +26,7 @@ def set_mean(vel, v_bar, x, n, clip=None):
     :param clip: clipping to reduce spikes, None, "kph", or "ms"
     """
     velout = 'spam'
-    vel = np.copy(v_bar + vel - np.trapz(vel, x) / (x.max() - x.min()))
+    vel = np.copy(v_bar + vel - np.trapezoid(vel, x) / (x.max() - x.min()))
     if clip is None:
         velout = vel
     elif clip == "kph":
@@ -48,7 +48,7 @@ def set_mean(vel, v_bar, x, n, clip=None):
         velout = vel
         warnings.warn("clip specifier not valid, no clip is applied.")
 
-    if np.isclose(np.trapz(velout, x) / (x.max() - x.min()), v_bar):
+    if np.isclose(np.trapezoid(velout, x) / (x.max() - x.min()), v_bar):
         return velout.copy()
     # Old implementation by recursion. Keep until current implementation tested with real data.
     # else:
@@ -58,12 +58,12 @@ def set_mean(vel, v_bar, x, n, clip=None):
     #         warnings.warn(f'max recursion reached with v_bar = {v_bar}')
     #     return velout.copy()
     velout = _set_mean_clip_optifun(vel, v_bar, x, n, clip=clip)
-    current_delta = np.trapz(velout, x) / (x.max() - x.min()) - v_bar  # delta is positive if the actual is larger
+    current_delta = np.trapezoid(velout, x) / (x.max() - x.min()) - v_bar  # delta is positive if the actual is larger
     # than the target
     adjust = v_bar - current_delta  # if the actual is larger than target, take some off
     while not math.isclose(current_delta, 0, abs_tol=1e-12):
         velout = _set_mean_clip_optifun(vel, v_bar + adjust, x, n, clip=clip)
-        current_delta = np.trapz(velout, x) / (x.max() - x.min()) - v_bar
+        current_delta = np.trapezoid(velout, x) / (x.max() - x.min()) - v_bar
         adjust -= current_delta
 
     # v_bar = v_bar + adjust
@@ -83,7 +83,7 @@ def _set_mean_clip_optifun(vel, v_bar, x, n, clip=None):
     :param n: precision in decimal points
     :param clip: clipping to reduce spikes, None, "kph", or "ms"
     """
-    vel = np.copy(v_bar + vel - np.trapz(vel, x) / (x.max() - x.min()))
+    vel = np.copy(v_bar + vel - np.trapezoid(vel, x) / (x.max() - x.min()))
     if clip is None:
         velout = vel
     elif clip == "kph":
@@ -97,8 +97,8 @@ def _set_mean_clip_optifun(vel, v_bar, x, n, clip=None):
 
 
 def extract_prime(vel, x, n):
-    v_prime = vel - np.trapz(vel, x) / (x.max() - x.min())
-    assert round(np.trapz(v_prime, x), round(n)) == 0
+    v_prime = vel - np.trapezoid(vel, x) / (x.max() - x.min())
+    assert round(np.trapezoid(v_prime, x), round(n)) == 0
     return v_prime
     # else:
     #     try:
