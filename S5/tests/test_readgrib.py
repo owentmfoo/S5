@@ -4,17 +4,19 @@ Test Strategy:
 - Minimal testing on xarray and reading of grib file as they were tested externally.
 - TODO: Test for ssr_to_direct_and_diffuse to be added when function is finalised.
 """
+import datetime
 import itertools
-import pandas as pd
-import pytest
-import numpy as np
-from S5.Weather import readgrib
-import S5.Tecplot as TP
 from io import StringIO
 from unittest.mock import MagicMock
-import datetime
+
+import numpy as np
+import pandas as pd
+import pytest
 import pytz
 import xarray
+
+import S5.Tecplot as TP
+from S5.Weather import readgrib
 
 
 def test_cumulative_ssr_to_hourly_one_day():
@@ -66,8 +68,8 @@ def grib_df():
 2020-09-13,0 days 10:00:00,-0.3195696,-2.5932646,303.08423,19292198.0,100876.81,22362728.0,0,0.0,-12.51,130.98,2020-09-13 10:00:00
 """)
     df = pd.read_csv(filepath_or_buffer=csv)
-    df['time'] = df['time'].astype('datetime64')
-    df['valid_time'] = df['valid_time'].astype('datetime64')
+    df.loc[:, 'time'] = pd.to_datetime(df['time'])
+    df.loc[:, 'valid_time'] = pd.to_datetime(df['valid_time'])
     df.set_index('time')
     return df.copy()
 

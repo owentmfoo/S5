@@ -16,7 +16,7 @@ classifiers = [
 dynamic = ["version", "description",]
 
 dependencies = [
-    "pandas[parquet] >= 1.5.0, < 2",
+    "pandas[parquet] >= 1.5.0",
     "pvlib",
     "pytz",
     "matplotlib >= 3.5.0",
@@ -51,19 +51,19 @@ docs = [
 ]
 
 [tool.pytest.ini_options]
- 	addopts = [
-	    "--strict-markers",
- 	   "--strict-config",
-        "-ra",
- 	    ]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+]
 
- 	testpaths = "S5"
+testpaths = "S5"
 
- 	markers = [
- 	        "smoke: subset of tests",
-        "exception: check for expected exceptions",
- 	]
- 	filterwarnings = [
+markers = [
+    "smoke: subset of tests",
+    "exception: check for expected exceptions",
+]
+filterwarnings = [
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning:pandas.*",
     "ignore:In a future version.*:FutureWarning",
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning:numpy.*",
@@ -79,4 +79,3 @@ omit = [
     "S5/tests/*",
     "S5/visualisation/*",
 ]
-
